@@ -37,6 +37,10 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'rest_framework',
+    'drf_spectacular', # API 문서화
+    'accounts',
+    'coupons',
 ]
 
 MIDDLEWARE = [
@@ -67,6 +71,19 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'modelproject.wsgi.application'
+
+REST_FRAMEWORK = {
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+}
+
+# drf-spectacular 설정
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': '쿠폰북 서비스 백엔드 API 문서',
+    'DESCRIPTION': '쿠폰북 서비스의 백엔드 API 문서입니다. 엔드포인트와 HTTP 메소드, 매개변수 정보, 요청 본문 스키마, 응답 스키마, 응답 예제 등을 제공합니다.',
+    'VERSION': 'dev',
+    'SERVE_INCLUDE_SCHEMA': False,
+}
 
 
 # Database
