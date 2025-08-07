@@ -35,6 +35,7 @@ services:
       - web
     networks:
       - server
+    command: '/bin/sh -c ''while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g "daemon off;"'''
   
   # SSL 인증서 관련 데이터 저장
   certbot:
