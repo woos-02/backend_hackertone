@@ -21,13 +21,23 @@ services:
       - ./nginx.default.conf:/etc/nginx/conf.d/default.conf
       - ./static:/static
       - ./media:/media # media가 있으면
-    restart: unless-stopped
+      - ./cert/certbot/conf:/etc/letsencrypt # 인증서 발급
+      - ./cert/certbot/www:/var/www/certbot # 인증서 발급
+    restart: always # unless-stopped -> always 변경
     ports:
       - "80:80"
+      - "443:443" # 추가
     depends_on:
       - web
     networks:
       - server
-
+  
+  # SSL 인증서 관련 데이터 저장
+  certbot:
+    image: certbot/certbot
+    restart: unless-stopped
+    volumes:
+      - ./cert/certbot/conf:/etc/letsencrypt 
+      - ./cert/certbot/www:/var/www/certbot
 networks:
   server:
