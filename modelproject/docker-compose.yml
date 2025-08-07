@@ -4,7 +4,7 @@ services:
     # build 추가
     build:
       context: .
-      dockerfile: Dockerfile #
+      dockerfile: Dockerfile
     image: server
     container_name: web
     command: bash -c "gunicorn modelproject.wsgi:application -b 0.0.0.0:8000" # 서버 실행
@@ -43,5 +43,7 @@ services:
     volumes:
       - ./cert/certbot/conf:/etc/letsencrypt 
       - ./cert/certbot/www:/var/www/certbot
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $$!; done;'"
+    # certbot 컨테이너 12시간마다 백그라운드에서 갱신 -> Status에서 Up 상태 유지
 networks:
   server:
