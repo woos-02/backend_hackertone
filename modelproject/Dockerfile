@@ -12,3 +12,6 @@ WORKDIR /app
 RUN pip install --upgrade pip
 RUN pip install -r requirements.txt
 COPY .env .
+
+COPY requirements-prod.txt .
+RUN pip install --no-cache-dir -r requirements-prod.txt

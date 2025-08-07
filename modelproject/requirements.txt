@@ -20,6 +20,7 @@ rpds-py==0.26.0
 sqlparse==0.5.3
 tzdata==2025.2
 uritemplate==4.2.0
+pymysql==1.1.1
 
 # 개발, 테스트, 배포까지 모두 공통으로 쓰는 패키지를 기록
 # ex) Django, DRF, pytest, debug-toolbar 등
