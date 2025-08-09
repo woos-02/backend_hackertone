@@ -1,8 +1,9 @@
-from django.db import models
+from __future__ import annotations
 
 # Create your models here.
 from django.contrib.auth.models import AbstractUser
-from __future__ import annotations
+from django.db import models
+
 
 class User(AbstractUser):
     """
@@ -15,7 +16,10 @@ class User(AbstractUser):
         OWNER = "OWNER", "점주"
 
     role: str = models.CharField(
-        max_length=20, choices=Role.choices, default=Role.CUSTOMER, help_text="사용자 역할"
+        max_length=20,
+        choices=Role.choices,
+        default=Role.CUSTOMER,
+        help_text="사용자 역할",
     )
     phone: str | None = models.CharField(
         max_length=20, null=True, blank=True, help_text="연락처(선택)"

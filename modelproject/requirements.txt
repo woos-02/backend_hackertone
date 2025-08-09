@@ -21,6 +21,8 @@ sqlparse==0.5.3
 tzdata==2025.2
 uritemplate==4.2.0
 pymysql==1.1.1
+djangorestframework-simplejwt>=5.3
+django-cors-headers>=4.4
 
 # 개발, 테스트, 배포까지 모두 공통으로 쓰는 패키지를 기록
 # ex) Django, DRF, pytest, debug-toolbar 등

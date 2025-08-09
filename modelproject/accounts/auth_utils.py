@@ -40,5 +40,9 @@ class IdentifierTokenObtainPairSerializer(TokenObtainPairSerializer):
         token_data = super().validate(data)
 
         # 유저 최소 정보 동봉
-        token_data["user"] = {"id": user.id, "username": user.username, "role": user.role}
+        token_data["user"] = {
+            "id": user.id,
+            "username": user.username,
+            "role": user.role,
+        }
         return token_data

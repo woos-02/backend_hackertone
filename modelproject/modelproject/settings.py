@@ -9,7 +9,7 @@ https://docs.djangoproject.com/en/5.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
-
+import pymysql
 from pathlib import Path
 
 # 환경변수 설정
@@ -50,8 +50,10 @@ INSTALLED_APPS = [
     "rest_framework",
     "debug_toolbar",  # 디버깅 툴바
     "drf_spectacular",  # API 문서화
+    "rest_framework_simplejwt",
     "accounts",
     "coupons",
+    "utils",
 ]
 
 MIDDLEWARE = [
@@ -85,6 +87,11 @@ TEMPLATES = [
 WSGI_APPLICATION = "modelproject.wsgi.application"
 
 REST_FRAMEWORK = {
+    # 실험
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ),
+
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
 
@@ -101,7 +108,7 @@ SPECTACULAR_SETTINGS = {
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-import pymysql
+
 
 pymysql.install_as_MySQLdb()
 DATABASES = {
@@ -161,3 +168,5 @@ try:
     from .local_settings import *
 except ImportError:
     pass
+
+AUTH_USER_MODEL = "accounts.User"

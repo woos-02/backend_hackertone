@@ -10,7 +10,7 @@ from drf_spectacular.utils import extend_schema, OpenApiExample
 from django.contrib.auth import get_user_model
 
 from .serializers import RegisterSerializer
-from .auth import IdentifierTokenObtainPairSerializer
+from .auth_utils import IdentifierTokenObtainPairSerializer
 
 User = get_user_model()
 
