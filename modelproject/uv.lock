@@ -221,7 +221,6 @@ dependencies = [
     { name = "djangorestframework" },
     { name = "djangorestframework-simplejwt" },
     { name = "drf-spectacular" },
-    { name = "gunicorn" },
     { name = "inflection" },
     { name = "jsonschema" },
     { name = "jsonschema-specifications" },
@@ -241,6 +240,7 @@ dependencies = [
 [package.optional-dependencies]
 prod = [
     { name = "cryptography" },
+    { name = "gunicorn" },
 ]
 
 [package.dev-dependencies]
@@ -259,7 +259,7 @@ requires-dist = [
     { name = "djangorestframework", specifier = "==3.16.0" },
     { name = "djangorestframework-simplejwt", specifier = ">=5.3" },
     { name = "drf-spectacular", specifier = "==0.28.0" },
-    { name = "gunicorn", specifier = "==23.0.0" },
+    { name = "gunicorn", marker = "extra == 'prod'", specifier = "==23.0.0" },
     { name = "inflection", specifier = "==0.5.1" },
     { name = "jsonschema", specifier = "==4.25.0" },
     { name = "jsonschema-specifications", specifier = "==2025.4.1" },
