@@ -9,7 +9,7 @@ https://docs.djangoproject.com/en/5.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
-import pymysql
+
 from pathlib import Path
 
 # 환경변수 설정
@@ -37,6 +37,16 @@ INTERNAL_IPS = [
     "127.0.0.1",
 ]
 
+# Nginx가 HTTPS를 종료하고 Django는 HTTP로 받으므로, 원래 스킴 복원
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+# CSRF 신뢰 도메인(https 필수)
+CSRF_TRUSTED_ORIGINS: list[str] = [
+    "https://hufs-likelion.store",
+]
+
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
 
 # Application definition
 
@@ -91,7 +101,6 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
-
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
 
@@ -108,9 +117,10 @@ SPECTACULAR_SETTINGS = {
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-
+import pymysql
 
 pymysql.install_as_MySQLdb()
+
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.mysql",
@@ -157,7 +167,8 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-STATIC_URL = "static/"
+STATIC_URL = "/static/"
+STATIC_ROOT = BASE_DIR / "static"  # docker-compose: ./static:/app/static
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
