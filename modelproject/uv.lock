@@ -221,10 +221,10 @@ dependencies = [
     { name = "djangorestframework" },
     { name = "djangorestframework-simplejwt" },
     { name = "drf-spectacular" },
+    { name = "gunicorn" },
     { name = "inflection" },
     { name = "jsonschema" },
     { name = "jsonschema-specifications" },
-    { name = "mysqlclient" },
     { name = "packaging" },
     { name = "pycparser" },
     { name = "pymysql" },
@@ -240,7 +240,6 @@ dependencies = [
 [package.optional-dependencies]
 prod = [
     { name = "cryptography" },
-    { name = "gunicorn" },
 ]
 
 [package.dev-dependencies]
@@ -259,11 +258,10 @@ requires-dist = [
     { name = "djangorestframework", specifier = "==3.16.0" },
     { name = "djangorestframework-simplejwt", specifier = ">=5.3" },
     { name = "drf-spectacular", specifier = "==0.28.0" },
-    { name = "gunicorn", marker = "extra == 'prod'", specifier = "==23.0.0" },
+    { name = "gunicorn", specifier = "==23.0.0" },
     { name = "inflection", specifier = "==0.5.1" },
     { name = "jsonschema", specifier = "==4.25.0" },
     { name = "jsonschema-specifications", specifier = "==2025.4.1" },
-    { name = "mysqlclient", specifier = "==2.2.7" },
     { name = "packaging", specifier = "==25.0" },
     { name = "pycparser", specifier = "==2.22" },
     { name = "pymysql", specifier = "==1.1.1" },
@@ -279,15 +277,6 @@ provides-extras = ["prod"]
 
 [package.metadata.requires-dev]
 dev = [{ name = "django-debug-toolbar", specifier = ">=6.0.0" }]
-
-[[package]]
-name = "mysqlclient"
-version = "2.2.7"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/61/68/810093cb579daae426794bbd9d88aa830fae296e85172d18cb0f0e5dd4bc/mysqlclient-2.2.7.tar.gz", hash = "sha256:24ae22b59416d5fcce7e99c9d37548350b4565baac82f95e149cac6ce4163845", size = 91383, upload-time = "2025-01-10T12:06:00.763Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/29/01/e80141f1cd0459e4c9a5dd309dee135bbae41d6c6c121252fdd853001a8a/mysqlclient-2.2.7-cp313-cp313-win_amd64.whl", hash = "sha256:201a6faa301011dd07bca6b651fe5aaa546d7c9a5426835a06c3172e1056a3c5", size = 208000, upload-time = "2025-01-10T11:56:32.293Z" },
-]
 
 [[package]]
 name = "packaging"
