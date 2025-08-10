@@ -7,23 +7,16 @@ services:
       dockerfile: Dockerfile
     image: server
     container_name: web
-    command: >
-      uv run --with ".[prod]" gunicorn modelproject.wsgi:application
-      --bind 0.0.0.0:8000
-      --workers 3
-      --timeout 60
-      --access-logfile -
-      --error-logfile -
+    command: ["/app/.venv/bin/gunicorn","modelproject.wsgi:application","-b","0.0.0.0:8000","--workers","3","--timeout","60","--access-logfile","-","--error-logfile","-"]
     # bash -c "gunicorn modelproject.wsgi:application -b 0.0.0.0:8000" # 서버 실행
     ports:
       - "8000:8000"
     restart: always
     volumes:
-      - .:/app
+      # - .:/app
       - ./static:/app/static
       - ./media:/app/media # media가 있으면
-    networks:
-      - server
+    networks: [server]
 
   nginx:
     image: nginx:latest
