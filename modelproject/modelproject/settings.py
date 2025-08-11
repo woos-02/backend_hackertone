@@ -97,11 +97,17 @@ TEMPLATES = [
 WSGI_APPLICATION = "modelproject.wsgi.application"
 
 REST_FRAMEWORK = {
-    # 실험
+    # Authentication
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    # Parser
+    "DEFAULT_PARSER_CLASSES": [
+        "rest_framework.parsers.JSONParser",
+        "rest_framework.parsers.FormParser",
+        "rest_framework.parsers.MultiPartParser",
+    ],
 }
 
 # drf-spectacular 설정
@@ -117,9 +123,9 @@ SPECTACULAR_SETTINGS = {
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-import pymysql
+# import pymysql
 
-pymysql.install_as_MySQLdb()
+# pymysql.install_as_MySQLdb()
 
 DATABASES = {
     "default": {
