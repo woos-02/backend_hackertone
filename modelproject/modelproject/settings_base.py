@@ -48,6 +48,8 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt",
     "accounts",
     "coupons",
+    "couponbook",
+    "payment"
     "utils",
 ]
 
