@@ -13,7 +13,7 @@ services:
     restart: always
     volumes:
       # - .:/app
-      - ./static:/app/static
+      - ./static_volume:/static
       - ./media:/app/media # media가 있으면
     networks: [server]
 
@@ -22,7 +22,7 @@ services:
     container_name: nginx
     volumes:
       - ./nginx.default.conf:/etc/nginx/conf.d/default.conf
-      - ./static:/static:ro
+      - ./static_volume:/static:ro
       - ./media:/media:ro  # media가 있으면
       - ./cert/certbot/conf:/etc/letsencrypt # 인증서 발급
       - ./cert/certbot/www:/var/www/certbot # 인증서 발급
@@ -47,3 +47,7 @@ services:
     # certbot 컨테이너 12시간마다 백그라운드에서 갱신 -> Status에서 Up 상태 유지
 networks:
   server:
+
+volumes:
+  static_volume:
+  media_volume:
