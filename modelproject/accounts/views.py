@@ -47,6 +47,15 @@ class RegisterCustomerView(APIView):
     parser_classes = (JSONParser, FormParser, MultiPartParser)
 
     def post(self, request: Request) -> Response:
+        print(
+            "REG DBG:",
+            request.content_type,
+            "LEN=",
+            len(request.body),
+            "DATA=",
+            request.data,
+            flush=True,
+        )
         serializer = RegisterSerializer(
             data=request.data, context={"role": User.Role.CUSTOMER}
         )
@@ -71,6 +80,15 @@ class RegisterOwnerView(APIView):
     parser_classes = (JSONParser, FormParser, MultiPartParser)
 
     def post(self, request: Request) -> Response:
+        print(
+            "REG DBG:",
+            request.content_type,
+            "LEN=",
+            len(request.body),
+            "DATA=",
+            request.data,
+            flush=True,
+        )
         serializer = RegisterSerializer(
             data=request.data, context={"role": User.Role.OWNER}
         )
