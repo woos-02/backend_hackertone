@@ -8,8 +8,6 @@ from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
-from modelproject.couponbook.models import CouponBook
-
 from .models import *
 from .serializers import *
 
@@ -88,7 +86,7 @@ class CouponDetailView(RetrieveAPIView):
     """
     한 쿠폰을 조회하는 뷰입니다. 쿠폰 id에 해당하는 쿠폰을 조회합니다.
     """
-    serializer_class = CouponDetailResponseSserializer
+    serializer_class = CouponDetailResponseSerializer
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
 
@@ -116,20 +114,3 @@ class StampListView(ListAPIView):
         """
         coupon_id: int = self.kwargs['coupon_id']
         return Stamp.objects.filter(coupon_id=coupon_id)
-
-@extend_schema_view(
-    get=extend_schema(
-        description="스탬프 id에 해당하는 쿠폰을 조회합니다. " \
-            "스탬프 목록 조회와는 다르게 스탬프 id를 path parmaeter로 취하는 점에 주의해야 합니다.",
-    )
-)
-class StampDetailView(RetrieveAPIView):
-    """
-    한 스탬프를 조회하는 뷰입니다. 스탬프 id에 해당하는 쿠폰을 조회합니다.
-    """
-    serializer_class = StampDetailSerializer
-    authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated]
-
-    queryset = Stamp.objects.all()
-    lookup_url_kwarg = 'stamp_id'

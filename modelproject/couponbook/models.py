@@ -9,7 +9,7 @@ class CouponBook(models.Model):
     user = models.ForeignKey("accounts.User",
                                  related_name='couponbook',
                                  on_delete=models.CASCADE,
-                                 help_text="쿠폰북을 소유한 유저입니다.")
+                                 help_text="쿠폰북을 소유한 유저 id입니다.")
     design_json = models.JSONField(help_text="쿠폰북에 대한 디자인 정보가 JSON으로 저장되어 있습니다.")
 
 class Coupon(models.Model):
@@ -19,10 +19,10 @@ class Coupon(models.Model):
     couponbook = models.ForeignKey(CouponBook,
                                    related_name='coupons',
                                    on_delete=models.CASCADE,
-                                   help_text="해당 쿠폰이 등록되어 있는 쿠폰북입니다.")
+                                   help_text="해당 쿠폰이 등록되어 있는 쿠폰북 id입니다.")
     original_template = models.ForeignKey("CouponTemplate",
                                           on_delete=models.CASCADE,
-                                          help_text="쿠폰 발행에 사용된 쿠폰 템플릿입니다. 유효성 검증에 사용합니다.")
+                                          help_text="쿠폰 발행에 사용된 쿠폰 템플릿 id입니다. 유효성 검증에 사용합니다.")
     image_url = models.URLField(help_text="쿠폰의 이미지가 담겨 있는 URL입니다.")
     max_stamps = models.PositiveIntegerField(help_text="쿠폰 완성까지 필요한 총 스탬프의 개수입니다.")
     is_favorite = models.BooleanField(default=False, help_text="해당 쿠폰을 즐겨찾기했는지의 여부를 나타냅니다.")
@@ -47,7 +47,7 @@ class RewardsInfo(models.Model):
     """
     coupon_template = models.ForeignKey(CouponTemplate,
                                         on_delete=models.CASCADE,
-                                        help_text="어떤 쿠폰 템플릿에 있는 리워드 정보인지를 의미합니다.")
+                                        help_text="어떤 쿠폰 템플릿 id에 있는 리워드 정보인지를 의미합니다.")
     amount = models.PositiveIntegerField(help_text="리워드를 지급하는 스탬프 횟수입니다.")
     reward = models.CharField(help_text="어떤 혜택이 있는지를 의미합니다.")
 
@@ -58,8 +58,8 @@ class Stamp(models.Model):
     coupon = models.ForeignKey(Coupon,
                                related_name='stamps',
                                on_delete=models.CASCADE,
-                               help_text="어떤 쿠폰에 적립된 스탬프인지를 의미합니다.")
+                               help_text="어떤 쿠폰 id에 적립된 스탬프인지를 의미합니다.")
     related_payment = models.ForeignKey("payment.PaymentHistory",
                                         on_delete=models.CASCADE,
-                                        help_text="해당 스탬프의 적립 근거가 되는 결제 내역입니다.")
-    customer = models.ForeignKey("accounts.User", on_delete=models.CASCADE, help_text="스탬프를 적립받은 고객입니다.")
+                                        help_text="해당 스탬프의 적립 근거가 되는 결제 내역 id입니다.")
+    customer = models.ForeignKey("accounts.User", on_delete=models.CASCADE, help_text="스탬프를 적립받은 고객 id입니다.")
