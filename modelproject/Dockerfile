@@ -1,24 +1,3 @@
-# FROM python:3.10.12
-
-# ENV PYTHONUNBUFFERED 1
-
-# RUN apt-get -y update
-# RUN apt-get -y install vim
-
-# RUN mkdir /app
-# ADD . /app
-# WORKDIR /app
-# COPY .python-version .
-
-# RUN pip install --upgrade pip
-# RUN pip install -r requirements.txt
-# COPY .env .
-
-# COPY requirements-prod.txt .
-# RUN pip install --no-cache-dir -r requirements-prod.txt
-
-# ---- base ----
-
 FROM python:3.13-slim
 
 ENV PYTHONUNBUFFERED=1 \
@@ -52,12 +31,3 @@ RUN uv sync --no-dev --extra prod --frozen
 
 # 앱 소스 복사
 COPY . .
-
-# ⚠️ .env는 이미지에 포함하지 않는 것을 권장 (런타임에 --env-file 등으로 주입)
-# COPY .env .
-
-# 개발 서버 예시 (실서비스는 gunicorn/uwsgi 권장)
-# CMD ["uv", "run", "python", "manage.py", "runserver", "0.0.0.0:8000"]
-
-# 예: gunicorn으로 실행 (원하시면 주석 해제)
-# CMD ["uv", "run", "gunicorn", "modelproject.wsgi:application", "-b", "0.0.0.0:8000"]

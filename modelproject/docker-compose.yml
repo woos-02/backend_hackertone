@@ -7,12 +7,10 @@ services:
       dockerfile: Dockerfile
     container_name: web
     command: ["/app/.venv/bin/gunicorn","modelproject.wsgi:application","-b","0.0.0.0:8000","--workers","3","--timeout","60","--access-logfile","-","--error-logfile","-"]
-    # bash -c "gunicorn modelproject.wsgi:application -b 0.0.0.0:8000" # 서버 실행
     ports:
       - "8000:8000"
     restart: always
     volumes:
-      # - .:/app
       - ./static_volume:/static
       - ./media:/app/media # media가 있으면
     networks: [server]
@@ -26,10 +24,10 @@ services:
       - ./media:/media:ro  # media가 있으면
       - ./cert/certbot/conf:/etc/letsencrypt # 인증서 발급
       - ./cert/certbot/www:/var/www/certbot # 인증서 발급
-    restart: always # unless-stopped -> always 변경
+    restart: always
     ports:
       - "80:80"
-      - "443:443" # 추가
+      - "443:443"
     depends_on:
       - web
     networks:
