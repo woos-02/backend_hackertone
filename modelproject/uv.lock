@@ -264,7 +264,7 @@ requires-dist = [
     { name = "jsonschema-specifications", specifier = "==2025.4.1" },
     { name = "packaging", specifier = "==25.0" },
     { name = "pycparser", specifier = "==2.22" },
-    { name = "pymysql", specifier = "==1.1.1" },
+    { name = "pymysql", specifier = ">=1.1.0" },
     { name = "python-decouple", specifier = "==3.8" },
     { name = "pyyaml", specifier = "==6.0.2" },
     { name = "referencing", specifier = "==0.36.2" },

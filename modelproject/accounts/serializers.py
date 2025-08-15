@@ -1,14 +1,15 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Literal
 
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import AbstractUser
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
 from rest_framework import serializers
 
-User = get_user_model()
+User: type[AbstractUser] = get_user_model()
 
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -21,8 +22,8 @@ class RegisterSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ("id", "username", "email", "password", "phone")
-        extra_kwargs = {
+        fields: tuple[Literal['id'], Literal['username'], Literal['email'], Literal['password'], Literal['phone']] = ("id", "username", "email", "password", "phone")
+        extra_kwargs: dict[str, dict[str, bool]] = {
             "email": {"required": True},
         }
 
@@ -48,4 +49,4 @@ class UserMiniSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ("id", "username", "role")
+        fields: tuple[Literal['id'], Literal['username'], Literal['role']] = ("id", "username", "role")

@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import Literal
 
 # Create your models here.
 from django.contrib.auth.models import AbstractUser
@@ -12,8 +13,8 @@ class User(AbstractUser):
     """
 
     class Role(models.TextChoices):
-        CUSTOMER = "CUSTOMER", "손님"
-        OWNER = "OWNER", "점주"
+        CUSTOMER: tuple[Literal['CUSTOMER'], Literal['손님']] = "CUSTOMER", "손님"
+        OWNER: tuple[Literal['OWNER'], Literal['점주']] = "OWNER", "점주"
 
     role: str = models.CharField(
         max_length=20,

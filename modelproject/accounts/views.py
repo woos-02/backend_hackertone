@@ -77,7 +77,11 @@ class RegisterOwnerView(APIView):
     점주(OWNER) 역할 회원 가입 API.
     """
 
-    parser_classes = (JSONParser, FormParser, MultiPartParser)
+    parser_classes: tuple[type[JSONParser], type[FormParser], type[MultiPartParser]] = (
+        JSONParser,
+        FormParser,
+        MultiPartParser,
+    )
 
     def post(self, request: Request) -> Response:
         print(
@@ -166,7 +170,7 @@ class MeView(APIView):
     프론트에서 로그인 직후 사용자 정보를 가져올 때 활용하세요.
     """
 
-    permission_classes = [IsAuthenticated]
+    permission_classes: list[type[IsAuthenticated]] = [IsAuthenticated]
 
     def get(self, request: Request) -> Response:
         user: User = request.user  # type: ignore[assignment]
