@@ -10,5 +10,4 @@ urlpatterns = [
     path('couponbooks/<int:couponbook_id>/coupons/', CouponListView.as_view(), name='coupon-list'),
     path('coupons/<int:coupon_id>/', CouponDetailView.as_view(), name='coupon-detail'),
     path('coupons/<int:coupon_id>/stamps/', StampListView.as_view(), name='stamp-list'),
-    # path('stamps/<int:stamp_id>/', StampDetailView.as_view(), name='stamp-detail'),
 ]

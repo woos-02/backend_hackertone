@@ -10,7 +10,7 @@ class CouponBook(models.Model):
                                  related_name='couponbook',
                                  on_delete=models.CASCADE,
                                  help_text="쿠폰북을 소유한 유저 id입니다.")
-    design_json = models.JSONField(help_text="쿠폰북에 대한 디자인 정보가 JSON으로 저장되어 있습니다.")
+    design_json = models.JSONField(default=dict, help_text="쿠폰북에 대한 디자인 정보가 JSON으로 저장되어 있습니다.")
 
 class Coupon(models.Model):
     """
@@ -40,6 +40,7 @@ class CouponTemplate(models.Model):
     views = models.PositiveIntegerField(default=0, help_text="조회수를 의미합니다.")
     saves = models.PositiveIntegerField(default=0, help_text="저장된 횟수입니다.")
     uses = models.PositiveIntegerField(default=0, help_text="사용된 횟수입니다.")
+    created_at = models.DateTimeField(auto_now_add=True, help_text="점주가 쿠폰 템플릿을 등록한 날짜와 시간입니다.")
 
 class RewardsInfo(models.Model):
     """
@@ -59,7 +60,16 @@ class Stamp(models.Model):
                                related_name='stamps',
                                on_delete=models.CASCADE,
                                help_text="어떤 쿠폰 id에 적립된 스탬프인지를 의미합니다.")
-    related_payment = models.ForeignKey("payment.PaymentHistory",
-                                        on_delete=models.CASCADE,
-                                        help_text="해당 스탬프의 적립 근거가 되는 결제 내역 id입니다.")
+    receipt_number = models.ForeignKey('couponbook.Receipt',
+                                       related_name='stamp',
+                                       on_delete=models.CASCADE,
+                                       help_text="해당 스탬프의 적립 근거가 되는 영수증 번호입니다.")
     customer = models.ForeignKey("accounts.User", on_delete=models.CASCADE, help_text="스탬프를 적립받은 고객 id입니다.")
+    created_at = models.DateTimeField(auto_now_add=True, help_text="스탬프가 적립된 날짜와 시간입니다.")
+
+class Receipt(models.Model):
+    """
+    점주가 결제 완료 후 등록한 영수증입니다. 이 영수증과 일치해야 스탬프가 적립됩니다.
+    """
+    receipt_number = models.TextField(max_length=30, help_text="영수증 번호입니다. 중복되지 않습니다.", unique=True, primary_key=True)
+    created_at = models.DateTimeField(auto_now_add=True, help_text="점주에 의해 영수증이 등록된 날짜와 시간입니다.")

@@ -47,9 +47,7 @@ INSTALLED_APPS = [
     "drf_spectacular",  # API 문서화
     "rest_framework_simplejwt",
     "accounts",
-    "coupons",
     "couponbook",
-    "payment"
     "utils",
 ]
 

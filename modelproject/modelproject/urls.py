@@ -23,7 +23,7 @@ from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 urlpatterns = [
     path("admin/", admin.site.urls),
 
-    path("api/accounts/", include("accounts.urls")),
+    # path("api/accounts/", include("accounts.urls")),
     # OpenAPI 스키마 & UI
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     path("api/docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="docs"),
@@ -35,4 +35,6 @@ urlpatterns = [
         SpectacularSwaggerView.as_view(url_name="schema"),
         name="schema-swagger",
     ),
+
+    path("couponbook/", include('couponbook.urls'), name='couponbook'),
 ] + debug_toolbar_urls()  # 디버깅 툴바
