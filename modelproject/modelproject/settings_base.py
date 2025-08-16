@@ -32,25 +32,6 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: don't run with debug turned on in production!
 
-# DEBUG True -> False 변환
-DEBUG = False
-
-ALLOWED_HOSTS = ["127.0.0.1", "13.124.195.3", "hufs-likelion.store"]
-
-INTERNAL_IPS = [
-    "127.0.0.1",
-]
-
-# Nginx가 HTTPS를 종료하고 Django는 HTTP로 받으므로, 원래 스킴 복원
-SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
-
-# CSRF 신뢰 도메인(https 필수)
-CSRF_TRUSTED_ORIGINS: list[str] = [
-    "https://hufs-likelion.store",
-]
-
-SESSION_COOKIE_SECURE = True
-CSRF_COOKIE_SECURE = True
 
 # Application definition
 
@@ -126,17 +107,6 @@ SPECTACULAR_SETTINGS = {
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
-
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.mysql",
-        "NAME": config("DB_NAME"),  # DB(스키마) 이름
-        "USER": config("DB_USER"),  # 유저 이름 (root)
-        "PASSWORD": config("DB_PASSWORD"),  # DB 비밀번호
-        "HOST": config("DB_HOST"),  # DB 엔드포인트
-        "PORT": 3306,
-    }
-}
 
 
 # Password validation
