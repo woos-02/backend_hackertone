@@ -10,7 +10,6 @@ class CouponBook(models.Model):
                                  related_name='couponbook',
                                  on_delete=models.CASCADE,
                                  help_text="쿠폰북을 소유한 유저 id입니다.")
-    design_json = models.JSONField(default=dict, help_text="쿠폰북에 대한 디자인 정보가 JSON으로 저장되어 있습니다.")
 
 class Coupon(models.Model):
     """
