@@ -123,7 +123,7 @@ class CouponTemplateDetailView(RetrieveAPIView):
     permission_classes = [IsAuthenticated]
 
     queryset = CouponTemplate.objects.filter(is_on=True)
-    lookup_url_kwarg = 'ccoupon_template_id'
+    lookup_url_kwarg = 'coupon_template_id'
 
 
 # -------------------------------- 스탬프 ---------------------------------
