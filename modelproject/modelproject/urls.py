@@ -20,7 +20,6 @@ from debug_toolbar.toolbar import debug_toolbar_urls
 from django.contrib import admin
 from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
-from data_api import views as data_views
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -36,8 +35,7 @@ urlpatterns = [
         name="schema-swagger",
     ),
     path("accounts/", include("accounts.urls")),
-    path("couponbook/", include('couponbook.urls'), name='couponbook'),
-    
+    path("couponbook/", include("couponbook.urls"), name="couponbook"),
     # 위치 정보 API 엔드포인트 : JSON 형식으로 전국 시/도, 시/군/구, 읍/면/동 데이터 반환
-    path('api/locations/', data_views.get_location_data, name='get_location_data'),
+    path("api/", include("data_api.urls")),
 ] + debug_toolbar_urls()  # 디버깅 툴바
