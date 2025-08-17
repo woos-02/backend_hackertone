@@ -22,8 +22,6 @@ class Coupon(models.Model):
     original_template = models.ForeignKey("CouponTemplate",
                                           on_delete=models.CASCADE,
                                           help_text="쿠폰 발행에 사용된 쿠폰 템플릿 id입니다. 유효성 검증에 사용합니다.")
-    image_url = models.URLField(help_text="쿠폰의 이미지가 담겨 있는 URL입니다.")
-    max_stamps = models.PositiveIntegerField(help_text="쿠폰 완성까지 필요한 총 스탬프의 개수입니다.")
     is_favorite = models.BooleanField(default=False, help_text="해당 쿠폰을 즐겨찾기했는지의 여부를 나타냅니다.")
     is_completed = models.BooleanField(default=False, help_text="쿠폰 완성 여부를 나타냅니다.")
     saved_at = models.DateTimeField(auto_now_add=True, help_text="쿠폰을 등록한 날짜와 시간입니다.")

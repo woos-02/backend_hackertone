@@ -22,7 +22,7 @@ class StampListRequestSerializer(serializers.ModelSerializer):
         둘 중 하나라도 만족하지 못하면 ValidationError가 발생합니다.
         """
         receipt = data.get('receipt')
-        if receipt is None:
+        if not receipt:
             raise serializers.ValidationError("DB에 등록되지 않은 영수증 번호입니다.")
         
         if hasattr(receipt, 'stamp'):
@@ -99,6 +99,42 @@ class CouponTemplateDetailSerializer(serializers.ModelSerializer):
 
 
 # --------------------------- 쿠폰 -----------------------------
+class CouponListRequestSerializer(serializers.ModelSerializer):
+    """
+    쿠폰을 생성하는 데에 사용되는 시리얼라이저입니다.
+    """
+
+    def validate(self, data) -> dict:
+        """
+        1. 원본 쿠폰 템플릿이 존재하는지 확인합니다.
+        2. 이미 해당 유저가 해당 쿠폰 템플릿으로 등록한 쿠폰이 존재하는지 확인합니다.
+        """
+        original_template = data.get('original_template')
+        if not original_template:
+            raise serializers.ValidationError("해당 쿠폰 템플릿이 존재하지 않습니다.")
+        
+        couponbook = self.context['couponbook']
+        coupon = Coupon.objects.filter(couponbook=couponbook, original_template=original_template)
+
+        if coupon.exists():
+            raise serializers.ValidationError("이미 해당 쿠폰 템플릿으로 생성한 쿠폰이 존재합니다.")
+        
+        return super().validate(data)
+    
+    def create(self, validated_data) -> Coupon:
+        """
+        원본 쿠폰 템플릿을 바탕으로 실사용 쿠폰을 생성합니다.
+        """
+        original_template = validated_data.pop('original_template')
+        couponbook = self.context['couponbook']
+        
+        return Coupon.objects.create(couponbook=couponbook, original_template=original_template)
+            
+
+    class Meta:
+        model = Coupon
+        fields = ['original_template']
+
 class CouponListResponseSerializer(serializers.ModelSerializer):
     """
     쿠폰의 목록을 조회하는 응답에 사용되는 시리얼라이저입니다.

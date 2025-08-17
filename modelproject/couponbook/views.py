@@ -59,7 +59,7 @@ class CouponBookDetailView(RetrieveAPIView):
         description="쿠폰북 id에 해당하는 쿠폰북에 속한 쿠폰들의 목록을 가져옵니다."
     )
 )
-class CouponListView(ListAPIView):
+class CouponListView(ListCreateAPIView):
     """
     쿠폰 목록에 관련된 뷰입니다. 쿠폰북에 속한 쿠폰들의 목록을 가져옵니다.
     """
@@ -73,7 +73,23 @@ class CouponListView(ListAPIView):
         """
         couponbook_id: int = self.kwargs['couponbook_id']
         return Coupon.objects.filter(couponbook_id=couponbook_id)
-
+    
+    def get_serializer_class(self):
+        if self.request.method == 'GET':
+            return CouponListResponseSerializer
+        return CouponListRequestSerializer
+    
+    def create(self, request, *args, **kwargs):
+        """
+        쿠폰 템플릿 id를 받아서, 해당 쿠폰 템플릿을 바탕으로 실사용 쿠폰을 생성합니다.
+        """
+        couponbook_id = self.kwargs['couponbook_id']
+        couponbook = get_object_or_404(CouponBook, id=couponbook_id)
+        serializer = CouponListRequestSerializer(data=request.data, context={'request': request, 'couponbook': couponbook})
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
 @extend_schema_view(
     get=extend_schema(
