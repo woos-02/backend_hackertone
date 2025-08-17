@@ -61,7 +61,7 @@ class Stamp(models.Model):
                                related_name='stamps',
                                on_delete=models.CASCADE,
                                help_text="어떤 쿠폰 id에 적립된 스탬프인지를 의미합니다.")
-    receipt_number = models.OneToOneField('couponbook.Receipt',
+    receipt = models.OneToOneField('couponbook.Receipt',
                                        related_name='stamp',
                                        on_delete=models.CASCADE,
                                        help_text="해당 스탬프의 적립 근거가 되는 영수증 번호입니다.")

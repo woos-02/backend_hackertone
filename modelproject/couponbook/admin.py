@@ -56,12 +56,12 @@ class RewardsInfoAdmin(admin.ModelAdmin):
 @admin.register(Stamp)
 class StampAdmin(admin.ModelAdmin):
     # 'related_payment' 대신 'receipt_number' 필드를 사용하도록 수정합니다.
-    list_display = ("id", "coupon", "customer", "receipt_number", "created_at")
+    list_display = ("id", "coupon", "customer", "receipt", "created_at")
     list_filter = ("customer",)
     search_fields = (
         "coupon__id",
         "customer__username",
-        "receipt_number__receipt_number",
+        "receipt__receipt_number",
     )
 
 

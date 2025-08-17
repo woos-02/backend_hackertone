@@ -21,31 +21,29 @@ class StampListRequestSerializer(serializers.ModelSerializer):
 
         둘 중 하나라도 만족하지 못하면 ValidationError가 발생합니다.
         """
-        receipt_number = data.get('reciept_number')
-        if receipt_number is None:
+        receipt = data.get('receipt')
+        if receipt is None:
             raise serializers.ValidationError("DB에 등록되지 않은 영수증 번호입니다.")
         
-        receipt = get_object_or_404(Receipt, receipt_number=receipt_number)
-        
-        if receipt.stamp.exists():
+        if hasattr(receipt, 'stamp'):
             raise serializers.ValidationError("이미 스탬프가 발급된 영수증 번호입니다.")
 
-        return super().validate(self, data)
+        return super().validate(data)
     
     def create(self, validated_data) -> Stamp:
         """
         유효성 검증을 통과한 영수증 번호를 바탕으로 쿠폰 id와 유저를 바탕으로 스탬프 인스턴스를 생성하고 돌려줍니다.
         """
-        receipt_number = validated_data.pop('receipt_number')
+        receipt = validated_data.pop('receipt')
         coupon_id = self.context['coupon_id']
         user = self.context['request'].user
 
-        return Stamp.objects.create(receipt_number=receipt_number, coupon_id=coupon_id, user=user)
-
+        return Stamp.objects.create(receipt=receipt, coupon_id=coupon_id, customer=user)
     
     class Meta:
         model = Stamp 
-        fields = ['receipt_number']
+        fields = ['receipt']
+
 
 class StampListResponseSerializer(serializers.ModelSerializer):
     """
@@ -113,7 +111,7 @@ class CouponListResponseSerializer(serializers.ModelSerializer):
         개별 쿠폰의 URL입니다.
         """
         request = self.context['request']
-        reverse('couponbook:coupon-detail', kwargs={'couponbook_id': obj.id}, request=request)
+        return reverse('couponbook:coupon-detail', kwargs={'coupon_id': obj.id}, request=request)
         
     class Meta:
         model = Coupon
