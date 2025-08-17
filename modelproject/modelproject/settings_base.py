@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     "accounts",
     "coupons",
     "utils",
+    "data_api",
 ]
 
 MIDDLEWARE = [

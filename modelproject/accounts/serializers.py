@@ -22,7 +22,7 @@ class RegisterSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields: tuple[Literal['id'], Literal['username'], Literal['email'], Literal['password'], Literal['phone']] = ("id", "username", "email", "password", "phone")
+        fields: tuple[Literal['id'], Literal['username'], Literal['email'], Literal['password'], Literal['phone'], Literal['favorite_province'], Literal['favorite_city'], Literal['favorite_district']] = ("id", "username", "email", "password", "phone", "favorite_province", "favorite_city", "favorite_district")
         extra_kwargs: dict[str, dict[str, bool]] = {
             "email": {"required": True},
         }

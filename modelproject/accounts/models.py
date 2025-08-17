@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 from typing import Literal
 
 # Create your models here.
@@ -13,8 +14,8 @@ class User(AbstractUser):
     """
 
     class Role(models.TextChoices):
-        CUSTOMER: tuple[Literal['CUSTOMER'], Literal['손님']] = "CUSTOMER", "손님"
-        OWNER: tuple[Literal['OWNER'], Literal['점주']] = "OWNER", "점주"
+        CUSTOMER: tuple[Literal["CUSTOMER"], Literal["손님"]] = "CUSTOMER", "손님"
+        OWNER: tuple[Literal["OWNER"], Literal["점주"]] = "OWNER", "점주"
 
     role: str = models.CharField(
         max_length=20,
@@ -25,6 +26,10 @@ class User(AbstractUser):
     phone: str | None = models.CharField(
         max_length=20, null=True, blank=True, help_text="연락처(선택)"
     )
+    
+    favorite_province = models.CharField(max_length=50, blank=True, help_text="자주 가는 시/도")
+    favorite_city = models.CharField(max_length=50, blank=True, help_text="자주 가는 시/군/구")
+    favorite_district = models.CharField(max_length=50, blank=True, help_text="자주 가는 읍/면/동")
 
     def is_owner(self) -> bool:
         """점주 여부 헬퍼."""
