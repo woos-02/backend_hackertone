@@ -8,9 +8,14 @@ from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
 from rest_framework import serializers
+from .models import User, FavoriteLocation
 
 User: type[AbstractUser] = get_user_model()
 
+class FavoriteLocationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FavoriteLocation
+        fields = ['province', 'city', 'district']
 
 class RegisterSerializer(serializers.ModelSerializer):
     """
@@ -20,9 +25,11 @@ class RegisterSerializer(serializers.ModelSerializer):
 
     password = serializers.CharField(write_only=True, min_length=8)
 
+    favorite_locations = FavoriteLocationSerializer(many=True, required=False)
+    
     class Meta:
         model = User
-        fields: tuple[Literal['id'], Literal['username'], Literal['email'], Literal['password'], Literal['phone'], Literal['favorite_province'], Literal['favorite_city'], Literal['favorite_district']] = ("id", "username", "email", "password", "phone", "favorite_province", "favorite_city", "favorite_district")
+        fields: tuple[Literal['id'], Literal['username'], Literal['email'], Literal['password'], Literal['phone'], Literal['favorite_locations']] = ("id", "username", "email", "password", "phone", "favorite_locations")
         extra_kwargs: dict[str, dict[str, bool]] = {
             "email": {"required": True},
         }
@@ -38,9 +45,16 @@ class RegisterSerializer(serializers.ModelSerializer):
     def create(self, validated_data: dict[str, Any]) -> User:
         role: str = self.context["role"]  # 뷰에서 주입
         password: str = validated_data.pop("password")
+
+        favorite_locations_data = validated_data.pop('favorite_locations', [])
+        
         user: User = User(**validated_data, role=role)
         user.set_password(password)
         user.save()
+
+        for location_data in favorite_locations_data:
+            FavoriteLocation.objects.create(user=user, **location_data)
+
         return user
 
 
