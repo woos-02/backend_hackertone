@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from django.contrib.auth import get_user_model
 from drf_spectacular.utils import OpenApiExample, extend_schema
-from rest_framework import status
+from rest_framework import status, generics, permissions # 여기 추가
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
@@ -11,7 +11,8 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from .auth_utils import IdentifierTokenObtainPairSerializer
-from .serializers import RegisterSerializer
+from .serializers import RegisterSerializer, UserUpdateSerializer, UserMiniSerializer, MeSerializer
+from .models import FavoriteLocation
 
 User = get_user_model()
 
@@ -29,18 +30,31 @@ User = get_user_model()
                 "email": "a@ex.com",
                 "password": "P@ssw0rd!",
                 "phone": "01012345678",
+                "favorite_locations": [
+                    {
+                        "province": "경기도",
+                        "city": "성남시",
+                        "district": "분당구"
+                    }
+                ]
             },
         )
     ],
 )
 class RegisterCustomerView(APIView):
-    """손님(CUSTOMER) 역할 회원 가입 API.
+    """
+    손님(CUSTOMER) 역할로 회원 가입을 처리하는 API 뷰입니다.
+
+    POST 요청을 통해 사용자 이름, 이메일, 비밀번호, 연락처,
+    그리고 **최소 1개 이상의 즐겨찾는 지역** 정보를 받아
+    새로운 '손님' 사용자를 생성합니다.
 
     Body(JSON 또는 x-www-form-urlencoded)
       - username: str
       - email: str
       - password: str
       - phone: str
+      - favorite_locations: str
     """
 
     # DRF 브라우저에서 JSON/폼 모두 받을 수 있도록 파서 명시
@@ -66,6 +80,8 @@ class RegisterCustomerView(APIView):
 class RegisterOwnerView(APIView):
     """
     점주(OWNER) 역할 회원 가입 API.
+
+    손님 회원가입과 동일한 방식으로 작동하지만, 사용자 역할만 '점주'로 설정됩니다.
     """
 
     parser_classes: tuple[type[JSONParser], type[FormParser], type[MultiPartParser]] = (
@@ -113,7 +129,7 @@ class LoginView(TokenObtainPairView):
       - username: str # 선택
       - password: str # 필수
 
-    identifier 또는 username 중 하나만 보내면 됩니다.
+    identifier 또는 username 중 하나만 보내면 됩니다. 이후 access/refresh 토큰 쌍을 발급합니다.
     """
 
     serializer_class = IdentifierTokenObtainPairSerializer
@@ -121,7 +137,7 @@ class LoginView(TokenObtainPairView):
 
 # Refresh는 기본 뷰 재사용
 class RefreshView(TokenRefreshView):
-    """JWT 토큰 재발급(Refresh -> Access)"""
+    """JWT 토큰 재발급(Refresh -> Access) 뷰입니다."""
 
     pass
 
@@ -138,6 +154,13 @@ class RefreshView(TokenRefreshView):
                 "username": "alice",
                 "email": "a@ex.com",
                 "role": "CUSTOMER",
+                "favorite_locations": [
+                     {
+                         "province": "경기도",
+                         "city": "성남시",
+                         "district": "분당구"
+                     }
+                ]
             },
         ),
         401: OpenApiExample(
@@ -156,12 +179,18 @@ class MeView(APIView):
 
     def get(self, request: Request) -> Response:
         user: User = request.user  # type: ignore[assignment]
-        return Response(
-            {
-                "id": user.id,
-                "username": user.username,
-                "email": getattr(user, "email", None),
-                "role": getattr(user, "role", None),
-            },
-            status=status.HTTP_200_OK,
-        )
+        serializer = MeSerializer(user)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+class UserProfileView(generics.RetrieveUpdateAPIView):
+    """
+    마이페이지 프로필 조회 및 수정 뷰.
+    GET: 사용자 프로필 정보 조회
+    PUT/PATCH: 사용자 프로필 정보 수정
+    """
+    serializer_class = UserUpdateSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_object(self):
+        # 현재 로그인된 사용자 객체를 반환합니다.
+        return self.request.user
