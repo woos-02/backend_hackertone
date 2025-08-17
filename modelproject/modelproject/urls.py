@@ -35,6 +35,6 @@ urlpatterns = [
         SpectacularSwaggerView.as_view(url_name="schema"),
         name="schema-swagger",
     ),
-
+    path("accounts/", include("accounts.urls")),
     path("couponbook/", include('couponbook.urls'), name='couponbook'),
 ] + debug_toolbar_urls()  # 디버깅 툴바
