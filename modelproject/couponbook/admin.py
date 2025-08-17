@@ -31,11 +31,8 @@ class CouponTemplateAdmin(admin.ModelAdmin):
     list_display = (
         "id",
         "valid_until",
-        "max_stamps",
         "is_on",
         "views",
-        "saves",
-        "uses",
         "created_at",
     )
     list_filter = ("is_on",)

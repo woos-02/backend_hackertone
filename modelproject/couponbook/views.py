@@ -194,7 +194,7 @@ class CouponTemplateDetailView(RetrieveAPIView):
     """
     한 쿠폰 템플릿을 조회하는 뷰입니다.
     """
-    serializer_class = CouponTemplateListSerializer
+    serializer_class = CouponTemplateDetailSerializer
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
 

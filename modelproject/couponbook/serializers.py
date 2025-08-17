@@ -89,6 +89,34 @@ class CouponTemplateListSerializer(serializers.ModelSerializer):
     점주가 등록하여 게시중인 쿠폰 템플릿을 조회하는 시리얼라이저입니다.
     """
     reward_info = RewardsInfoDetailSerializer()
+    max_stamps = serializers.SerializerMethodField()
+    saves = serializers.SerializerMethodField()
+    uses = serializers.SerializerMethodField()
+
+    def get_max_stamps(self, obj: CouponTemplate) -> int:
+        """
+        리워드를 받을 수 있는 스탬프 개수입니다.
+        """
+        reward_info = obj.reward_info
+        max_stamps = reward_info.amount
+        return max_stamps
+    
+    def get_saves(self, obj: CouponTemplate) -> int:
+        """
+        유저 전체의 쿠폰북 기준으로 해당 쿠폰 템플릿으로 생성한 실사용 쿠폰이 저장되어 있는 횟수입니다.
+        """
+        saved_coupons = Coupon.objects.filter(original_template=obj)
+        return saved_coupons.count()
+    
+    def get_uses(self, obj: CouponTemplate) -> int:
+        """
+        해당 쿠폰 템플릿으로 생성한 실사용 쿠폰으로 적립된 스탬프의 개수입니다.
+        """
+        saved_coupons = Coupon.objects.filter(original_template=obj)
+        uses = 0
+        for coupon in saved_coupons:
+            uses += coupon.stamps.count()
+        return uses
 
     class Meta:
         model = CouponTemplate
@@ -99,10 +127,19 @@ class CouponTemplateDetailSerializer(serializers.ModelSerializer):
     개별 쿠폰 템플릿을 조회하는 응답에 사용되는 시리얼라이저입니다.
     """
     reward_info = RewardsInfoDetailSerializer()
+    max_stamps = serializers.SerializerMethodField()
+
+    def get_max_stamps(self, obj: CouponTemplate) -> int:
+        """
+        리워드를 받을 수 있는 스탬프 개수입니다.
+        """
+        reward_info = obj.reward_info
+        max_stamps = reward_info.amount
+        return max_stamps
 
     class Meta:
         model = CouponTemplate
-        exclude = ['is_on', 'views', 'saves', 'uses']
+        exclude = ['is_on', 'views']
 
 
 # --------------------------- 쿠폰 -----------------------------
@@ -150,6 +187,7 @@ class CouponListResponseSerializer(serializers.ModelSerializer):
     is_favorite = serializers.SerializerMethodField()
     is_completed = serializers.SerializerMethodField()
     is_expired = serializers.SerializerMethodField()
+    days_remaining = serializers.SerializerMethodField()
 
     @extend_schema_field(OpenApiTypes.URI)
     def get_coupon_url(self, obj: Coupon):
@@ -187,6 +225,15 @@ class CouponListResponseSerializer(serializers.ModelSerializer):
         original_template: CouponTemplate = obj.original_template
         valid_until = original_template.valid_until
         return valid_until < now()
+    
+    def get_days_remaining(self, obj: Coupon) -> int:
+        """
+        해당 쿠폰의 유효기간이 며칠 남아 있는지를 의미합니다.
+        """
+        original_template: CouponTemplate = obj.original_template
+        valid_until = original_template.valid_until
+        time_delta = valid_until - now()
+        return time_delta.days
 
         
     class Meta:

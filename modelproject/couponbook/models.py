@@ -44,11 +44,9 @@ class CouponTemplate(models.Model):
     valid_until = models.DateTimeField(default=None, help_text="쿠폰의 유효기간입니다.")
     first_n_persons = models.PositiveIntegerField(default=0, help_text="선착순 몇명까지 쿠폰이 발급한지를 의미합니다.")
     image_url = models.URLField(help_text="쿠폰의 이미지가 담겨 있는 URL입니다.")
-    max_stamps = models.PositiveIntegerField(help_text="쿠폰 완성까지 필요한 총 스탬프의 개수입니다.")
     is_on = models.BooleanField(default=True, help_text="게시 중/비공개 여부를 불리언으로 나타냅니다.")
+    # Todo: views 시리얼라이저 필드로 이동
     views = models.PositiveIntegerField(default=0, help_text="조회수를 의미합니다.")
-    saves = models.PositiveIntegerField(default=0, help_text="저장된 횟수입니다.")
-    uses = models.PositiveIntegerField(default=0, help_text="사용된 횟수입니다.")
     created_at = models.DateTimeField(auto_now_add=True, help_text="점주가 쿠폰 템플릿을 등록한 날짜와 시간입니다.")
     # 가게 객체 ForeignKey로 추가해야 하는데, 가게 아직 구현 안해서 보류
 
