@@ -1,5 +1,6 @@
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+
 from .models import User
 from couponbook.models import CouponBook
 
@@ -11,6 +12,10 @@ def create_coupon_book(sender, instance, created, **kwargs):
     CouponBook을 자동으로 생성하는 시그널 핸들러입니다.
     """
     if created and instance.is_customer():
-        # CouponBook 인스턴스를 생성하고 user 필드에 새로 생성된 user를 할당합니다.
-        # design_json 필드는 기본값인 빈 JSON 객체로 설정합니다.
-        CouponBook.objects.create(user=instance, design_json={})
+        # CouponBook 인스턴스를 생성하고, 외래키(ForeignKey) 필드에 새로 생성된 user를 할당
+        try:
+            CouponBook.objects.create(user=instance)
+
+        except Exception as e:
+            # 예외가 발생하면 로깅을 남겨 디버깅에 도움
+            print(f"Error creating CouponBook for user {instance.username}: {e}")
