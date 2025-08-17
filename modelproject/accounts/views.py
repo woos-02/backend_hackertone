@@ -2,17 +2,24 @@ from __future__ import annotations
 
 from django.contrib.auth import get_user_model
 from drf_spectacular.utils import OpenApiExample, extend_schema
-from rest_framework import status, generics, permissions # 여기 추가
+from rest_framework import generics, permissions, status  # 여기 추가
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework_simplejwt.token_blacklist.models import OutstandingToken, BlacklistedToken
+from rest_framework_simplejwt.tokens import RefreshToken, TokenError
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from .auth_utils import IdentifierTokenObtainPairSerializer
-from .serializers import RegisterSerializer, UserUpdateSerializer, UserMiniSerializer, MeSerializer
 from .models import FavoriteLocation
+from .serializers import (
+    RegisterSerializer,
+    MeSerializer,
+    UserMiniSerializer,
+    UserUpdateSerializer,
+)
 
 User = get_user_model()
 
@@ -31,12 +38,8 @@ User = get_user_model()
                 "password": "P@ssw0rd!",
                 "phone": "01012345678",
                 "favorite_locations": [
-                    {
-                        "province": "경기도",
-                        "city": "성남시",
-                        "district": "분당구"
-                    }
-                ]
+                    {"province": "경기도", "city": "성남시", "district": "분당구"}
+                ],
             },
         )
     ],
@@ -155,12 +158,8 @@ class RefreshView(TokenRefreshView):
                 "email": "a@ex.com",
                 "role": "CUSTOMER",
                 "favorite_locations": [
-                     {
-                         "province": "경기도",
-                         "city": "성남시",
-                         "district": "분당구"
-                     }
-                ]
+                    {"province": "경기도", "city": "성남시", "district": "분당구"}
+                ],
             },
         ),
         401: OpenApiExample(
@@ -182,15 +181,70 @@ class MeView(APIView):
         serializer = MeSerializer(user)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+
 class UserProfileView(generics.RetrieveUpdateAPIView):
     """
     마이페이지 프로필 조회 및 수정 뷰.
     GET: 사용자 프로필 정보 조회
     PUT/PATCH: 사용자 프로필 정보 수정
     """
+
     serializer_class = UserUpdateSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def get_object(self):
         # 현재 로그인된 사용자 객체를 반환합니다.
         return self.request.user
+
+    # --- 추가된 부분 ---
+
+
+class LogoutView(APIView):
+    """
+    로그아웃 API. Refresh 토큰을 블랙리스트에 추가하여 무효화합니다.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        tags=["Auth"],
+        summary="로그아웃",
+        request={
+            "application/json": {
+                "example": {"refresh_token": "your_refresh_token_here"}
+            }
+        },
+        responses={
+            200: {"description": "로그아웃 성공"},
+            400: {"description": "유효하지 않은 토큰"},
+        },
+    )
+    def post(self, request: Request) -> Response:
+        try:
+            refresh_token = request.data["refresh_token"]
+            # RefreshToken 생성 시 유효하지 않은 토큰이면 여기서 TokenError 예외 발생
+            token = RefreshToken(refresh_token)
+            
+            # OutstandingToken 테이블에서 토큰을 가져옵니다.
+            outstanding_token = OutstandingToken.objects.filter(token=token).first()
+
+            # 토큰이 존재하면 BlacklistedToken에 추가합니다.
+            if outstanding_token:
+                BlacklistedToken.objects.create(token=outstanding_token)
+            
+            return Response(
+                {"detail": "Successfully logged out."}, status=status.HTTP_200_OK
+            )
+
+        except TokenError as e:
+            # TokenError가 발생하면 유효하지 않은 토큰으로 간주하고 Bad Request 응답을 보냅니다.
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        except KeyError:
+            # 'refresh_token' 필드가 없는 경우 KeyError 발생
+            return Response(
+                {"error": "refresh_token field is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        except Exception as e:
+            # 그 외의 모든 예외 처리
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)

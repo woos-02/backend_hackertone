@@ -69,29 +69,28 @@ class RegisterSerializer(serializers.ModelSerializer):
 
         return user
 
+
 class UserUpdateSerializer(serializers.ModelSerializer):
     """
     사용자 프로필 업데이트 시리얼라이저.
     """
+
     favorite_locations = FavoriteLocationSerializer(many=True, required=False)
-    
+
     class Meta:
         model = User
         fields = ["username", "email", "phone", "favorite_locations"]
-        extra_kwargs = {
-            "email": {"required": False}, 
-            "username": {"required": False}
-        }
+        extra_kwargs = {"email": {"required": False}, "username": {"required": False}}
 
     @transaction.atomic
     def update(self, instance, validated_data):
         # favorite_locations 데이터 분리
-        favorite_locations_data = validated_data.pop('favorite_locations', [])
-        
+        favorite_locations_data = validated_data.pop("favorite_locations", [])
+
         # User 모델 업데이트
-        instance.username = validated_data.get('username', instance.username)
-        instance.email = validated_data.get('email', instance.email)
-        instance.phone = validated_data.get('phone', instance.phone)
+        instance.username = validated_data.get("username", instance.username)
+        instance.email = validated_data.get("email", instance.email)
+        instance.phone = validated_data.get("phone", instance.phone)
         instance.save()
 
         # 기존 favorite_locations 데이터 모두 삭제 후,
@@ -101,7 +100,8 @@ class UserUpdateSerializer(serializers.ModelSerializer):
             FavoriteLocation.objects.create(user=instance, **location_data)
 
         return instance
-    
+
+
 class UserMiniSerializer(serializers.ModelSerializer):
     """토큰 응답에 실어보낼 최소 사용자 정보."""
 
@@ -113,11 +113,13 @@ class UserMiniSerializer(serializers.ModelSerializer):
             "role",
         )
 
+
 class MeSerializer(serializers.ModelSerializer):
     """
     MeView를 위한 시리얼라이저.
     사용자의 기본 정보와 favorite_locations를 포함합니다.
     """
+
     favorite_locations = FavoriteLocationSerializer(many=True, read_only=True)
 
     class Meta:
