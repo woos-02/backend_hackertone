@@ -66,6 +66,40 @@ class StampListResponseSerializer(serializers.ModelSerializer):
         fields = ['id', 'stamp_url']
 
 
+# ------------------------ 혜택 정보 ---------------------------
+class RewardsInfoDetailSerializer(serializers.ModelSerializer):
+    """
+    쿠폰에 해당하는 혜택 정보를 조회하는 시리얼라이저입니댜.
+    """
+    class Meta:
+        model = RewardsInfo
+        exclude = ['id', 'coupon_template']
+
+
+# ------------------------ 쿠폰 템플릿 -------------------------
+class CouponTemplateListSerializer(serializers.ModelSerializer):
+    """
+    점주가 등록하여 게시중인 쿠폰 템플릿을 조회하는 시리얼라이저입니다.
+    """
+    reward_info = RewardsInfoDetailSerializer()
+
+    class Meta:
+        model = CouponTemplate
+        fields = '__all__'
+
+class CouponTemplateDetailSerializer(serializers.ModelSerializer):
+    """
+    개별 쿠폰 템플릿을 조회하는 응답에 사용되는 시리얼라이저입니다.
+    """
+    reward_info = RewardsInfoDetailSerializer()
+
+    class Meta:
+        model = CouponTemplate
+        exclude = ['is_on', 'views', 'saves', 'uses']
+
+
+
+
 # --------------------------- 쿠폰 -----------------------------
 class CouponListResponseSerializer(serializers.ModelSerializer):
     """

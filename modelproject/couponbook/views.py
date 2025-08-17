@@ -93,6 +93,39 @@ class CouponDetailView(RetrieveAPIView):
     lookup_url_kwarg = 'coupon_id'
 
 
+# ----------------------------- 쿠폰 템플릿 -------------------------------
+@extend_schema_view(
+    get=extend_schema(
+        description="현재 게시중으로 설정된 쿠폰 템플릿들의 목록을 가져옵니다."
+    )
+)
+class CouponTemplateListView(ListAPIView):
+    """
+    쿠폰 템플릿들을 조회하는 뷰입니다.
+    """
+    serializer_class = CouponTemplateListSerializer
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    queryset = CouponTemplate.objects.filter(is_on=True)
+
+@extend_schema_view(
+    get=extend_schema(
+        description="현재 게시중으로 설정된 쿠폰 템플릿들 중 쿠폰 템플릿 id에 해당하는 쿠폰 템플릿을 가져옵니다."
+    )
+)
+class CouponTemplateDetailView(RetrieveAPIView):
+    """
+    한 쿠폰 템플릿을 조회하는 뷰입니다.
+    """
+    serializer_class = CouponTemplateListSerializer
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    queryset = CouponTemplate.objects.filter(is_on=True)
+    lookup_url_kwarg = 'ccoupon_template_id'
+
+
 # -------------------------------- 스탬프 ---------------------------------
 @extend_schema_view(
     get=extend_schema(

@@ -40,6 +40,7 @@ class CouponTemplate(models.Model):
     saves = models.PositiveIntegerField(default=0, help_text="저장된 횟수입니다.")
     uses = models.PositiveIntegerField(default=0, help_text="사용된 횟수입니다.")
     created_at = models.DateTimeField(auto_now_add=True, help_text="점주가 쿠폰 템플릿을 등록한 날짜와 시간입니다.")
+    # 가게 객체 ForeignKey로 추가해야 하는데, 가게 아직 구현 안해서 보류
 
 class RewardsInfo(models.Model):
     """
