@@ -49,7 +49,7 @@ class RewardsInfo(models.Model):
                                         on_delete=models.CASCADE,
                                         help_text="어떤 쿠폰 템플릿 id에 있는 리워드 정보인지를 의미합니다.")
     amount = models.PositiveIntegerField(help_text="리워드를 지급하는 스탬프 횟수입니다.")
-    reward = models.CharField(help_text="어떤 혜택이 있는지를 의미합니다.")
+    reward = models.CharField(max_length=100, help_text="어떤 혜택이 있는지를 의미합니다.")
 
 class Stamp(models.Model):
     """
