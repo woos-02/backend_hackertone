@@ -1,7 +1,7 @@
 from django.db import models
 
-
 # Create your models here.
+
 class CouponBook(models.Model):
     """
     쿠폰북 모델입니다. 실제 사용되는 쿠폰들은 쿠폰북에서 쿠폰을 역참조하는 형태로 조회됩니다.
@@ -22,9 +22,20 @@ class Coupon(models.Model):
     original_template = models.ForeignKey("CouponTemplate",
                                           on_delete=models.CASCADE,
                                           help_text="쿠폰 발행에 사용된 쿠폰 템플릿 id입니다. 유효성 검증에 사용합니다.")
-    is_favorite = models.BooleanField(default=False, help_text="해당 쿠폰을 즐겨찾기했는지의 여부를 나타냅니다.")
-    is_completed = models.BooleanField(default=False, help_text="쿠폰 완성 여부를 나타냅니다.")
     saved_at = models.DateTimeField(auto_now_add=True, help_text="쿠폰을 등록한 날짜와 시간입니다.")
+
+class FavoriteCoupon(models.Model):
+    """
+    즐겨찾기 등록한 쿠폰입니다.
+    """
+    couponbook = models.ForeignKey(CouponBook,
+                                   related_name='favorite_coupons',
+                                   on_delete=models.CASCADE,
+                                   help_text="해당 쿠폰이 등록되어 있는 쿠폰북 id입니다.")
+    coupon = models.OneToOneField(Coupon,
+                                  on_delete=models.CASCADE,
+                                  help_text="즐겨찾기 등록한 쿠폰 id입니다.")
+    added_at = models.DateTimeField(auto_now_add=True, help_text="즐겨찾기에 등록한 날짜와 시간입니다.")
 
 class CouponTemplate(models.Model):
     """

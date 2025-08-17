@@ -1,4 +1,5 @@
 from django.shortcuts import get_object_or_404
+from django.utils.timezone import now
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
@@ -57,11 +58,19 @@ class StampListResponseSerializer(serializers.ModelSerializer):
         개별 스탬프의 URL입니다.
         """
         request = self.context['request']
-        reverse('couponbook:stamp-detail', kwargs={'stamp_id': obj.id}, request=request)
+        return reverse('couponbook:stamp-detail', kwargs={'stamp_id': obj.id}, request=request)
     
     class Meta:
         model = Stamp
         fields = ['id', 'stamp_url']
+
+class StampDetailResponseSerializer(serializers.ModelSerializer):
+    """
+    한 스탬프의 정보를 조회하는 응답에 사용되는 시리얼라이저입니다.
+    """
+    class Meta:
+        model = Stamp
+        fields = ['id', 'created_at']
 
 
 # ------------------------ 혜택 정보 ---------------------------
@@ -94,8 +103,6 @@ class CouponTemplateDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = CouponTemplate
         exclude = ['is_on', 'views', 'saves', 'uses']
-
-
 
 
 # --------------------------- 쿠폰 -----------------------------
@@ -140,6 +147,9 @@ class CouponListResponseSerializer(serializers.ModelSerializer):
     쿠폰의 목록을 조회하는 응답에 사용되는 시리얼라이저입니다.
     """
     coupon_url = serializers.SerializerMethodField()
+    is_favorite = serializers.SerializerMethodField()
+    is_completed = serializers.SerializerMethodField()
+    is_expired = serializers.SerializerMethodField()
 
     @extend_schema_field(OpenApiTypes.URI)
     def get_coupon_url(self, obj: Coupon):
@@ -148,6 +158,36 @@ class CouponListResponseSerializer(serializers.ModelSerializer):
         """
         request = self.context['request']
         return reverse('couponbook:coupon-detail', kwargs={'coupon_id': obj.id}, request=request)
+    
+    def get_is_favorite(self, obj: Coupon) -> bool:
+        """
+        해당 쿠폰을 즐겨찾기에 등록했는지의 여부입니다.
+        """
+        user = self.context['request'].user
+        couponbook = CouponBook.objects.get(user=user)
+        favorite_coupon = couponbook.favorite_coupons.filter(coupon=obj)
+
+        return favorite_coupon.exists()
+    
+    def get_is_completed(self, obj: Coupon) -> bool:
+        """
+        해당 쿠폰이 완성되었는지를 의미합니다.
+        """
+        original_template: CouponTemplate = obj.original_template
+        reward_info: RewardsInfo = original_template.reward_info
+        max_stamps: int = reward_info.amount
+        current_stamps: int = Stamp.objects.filter(coupon=obj).count()
+
+        return max_stamps == current_stamps
+    
+    def get_is_expired(self, obj: Coupon) -> bool:
+        """
+        해당 쿠폰의 유효기간이 만료되었는지를 의미합니다.
+        """
+        original_template: CouponTemplate = obj.original_template
+        valid_until = original_template.valid_until
+        return valid_until < now()
+
         
     class Meta:
         model = Coupon
@@ -163,6 +203,58 @@ class CouponDetailResponseSerializer(serializers.ModelSerializer):
         model = Coupon
         exclude = ['original_template']
 
+class FavoriteCouponListRequestSerializer(serializers.ModelSerializer):
+    """
+    쿠폰을 즐겨찾기를 등록할 때 사용되는 시리얼라이저입니다.
+    """
+    def validate(self, data) -> dict:
+        """
+        1. 해당 쿠폰 id에 해당하는 쿠폰이 존재하는지 확인합니다.
+        2. 해당 쿠폰북에 해당 쿠폰이 즐겨찾기로 등록되어 있는지 확인합니다.
+        """
+        coupon = data.get('coupon')
+
+        if not coupon:
+            raise serializers.ValidationError("쿠폰 id에 해당하는 쿠폰이 존재하지 않습니다.")
+        
+        couponbook = self.context['couponbook']
+        favorite_coupon = couponbook.favorite_coupons.filter(coupon=coupon)
+
+        if favorite_coupon.exists():
+            raise serializers.ValidationError("이미 즐겨찾기 등록된 쿠폰입니다.")
+
+        return super().validate(data)
+    
+    def create(self, validated_data) -> FavoriteCoupon:
+        """
+        쿠폰 id에 해당하는 쿠폰을 현재 유저의 쿠폰북에 즐겨찾기 쿠폰으로 등록합니다.
+        """
+        coupon = validated_data.pop('coupon')
+        couponbook = self.context['couponbook']
+        return FavoriteCoupon.objects.create(coupon=coupon, couponbook=couponbook)
+
+    class Meta:
+        model = FavoriteCoupon
+        fields = ['coupon']
+
+class FavoriteCouponListResponseSerializer(serializers.ModelSerializer):
+    """
+    즐겨찾기 등록한 쿠폰을 조회하는 응답에 사용되는 시리얼라이저입니다.
+    """
+    coupon = CouponDetailResponseSerializer()
+
+    class Meta:
+        model = FavoriteCoupon
+        exclude = ['couponbook']
+
+class FavoriteCouponDetailResponseSerializer(serializers.ModelSerializer):
+    """
+    FavoriteCouponDetailView의 serializer_class로 지정하기 위해 만든 시리얼라이저입니다. 실제로 조회 응답에 사용되진 않습니다.
+    """
+    class Meta:
+        model = FavoriteCoupon
+        exclude = ['couponbook']
+
 
 # -------------------------- 쿠폰북 ----------------------------
 class CouponBookResponseSerializer(serializers.ModelSerializer):
@@ -177,7 +269,7 @@ class CouponBookResponseSerializer(serializers.ModelSerializer):
         """
         즐겨찾기 한 쿠폰의 개수입니다.
         """
-        coupons = Coupon.objects.filter(couponbook=obj, is_favorite=True)
+        coupons = FavoriteCoupon.objects.filter(couponbook=obj)
         return coupons.count()
     
     def get_coupon_counts(self, obj: CouponBook) -> int:

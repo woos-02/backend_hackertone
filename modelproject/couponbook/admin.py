@@ -21,10 +21,7 @@ class CouponAdmin(admin.ModelAdmin):
         "id",
         "couponbook",
         "original_template",
-        "is_completed",
-        "is_favorite",
     )
-    list_filter = ("is_completed", "is_favorite")
     search_fields = ("couponbook__user__username", "original_template__id")
 
 

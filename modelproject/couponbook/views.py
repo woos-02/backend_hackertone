@@ -1,8 +1,8 @@
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema, extend_schema_view
 from rest_framework import status
-from rest_framework.generics import (ListAPIView, ListCreateAPIView,
-                                     RetrieveAPIView)
+from rest_framework.generics import (DestroyAPIView, ListAPIView,
+                                     ListCreateAPIView, RetrieveAPIView)
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.authentication import JWTAuthentication
@@ -57,7 +57,10 @@ class CouponBookDetailView(RetrieveAPIView):
 @extend_schema_view(
     get=extend_schema(
         description="쿠폰북 id에 해당하는 쿠폰북에 속한 쿠폰들의 목록을 가져옵니다."
-    )
+    ),
+    post=extend_schema(
+        description="쿠폰북 id에 해당하는 쿠폰북에 쿠폰 템플릿 id에 해당하는 쿠폰 템플릿 정보를 바탕으로 실사용 쿠폰을 생성하여 등록합니다."
+    ),
 )
 class CouponListView(ListCreateAPIView):
     """
@@ -72,7 +75,9 @@ class CouponListView(ListCreateAPIView):
         URL의 couponbook_id를 바탕으로 해당 쿠폰북에 속한 쿠폰들을 조회합니다.
         """
         couponbook_id: int = self.kwargs['couponbook_id']
-        return Coupon.objects.filter(couponbook_id=couponbook_id)
+        queryset = Coupon.objects.filter(couponbook_id=couponbook_id)
+
+        return queryset
     
     def get_serializer_class(self):
         if self.request.method == 'GET':
@@ -107,6 +112,61 @@ class CouponDetailView(RetrieveAPIView):
 
     queryset = Coupon.objects.all()
     lookup_url_kwarg = 'coupon_id'
+
+@extend_schema_view(
+    get=extend_schema(
+        description="현재 로그인되어 있는 유저의 쿠폰북에 등록되어 있는 즐겨찾기 쿠폰들을 조회합니다.",
+    ),
+    post=extend_schema(
+        description="현재 로그인되어 있는 유저의 쿠폰북에 쿠폰 id에 해당하는 쿠폰을 즐겨찾기에 등록합니다."
+    )
+)
+class FavoriteCouponListView(ListCreateAPIView):
+    """
+    현재 쿠폰북에 등록되어 있는 즐겨찾기 쿠폰들을 조회하는 뷰입니다.
+    """
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get_serializer_class(self):
+        if self.request.method == 'GET':
+            return FavoriteCouponListResponseSerializer
+        return FavoriteCouponListRequestSerializer
+
+    def get_queryset(self):
+        """
+        현재 쿠폰북의 couponbook_id를 바탕으로 해당 쿠폰북에 속한 즐겨찾기 쿠폰들을 조회합니다.
+        """
+        couponbook_id = self.kwargs['couponbook_id']
+        queryset = FavoriteCoupon.objects.filter(couponbook_id=couponbook_id)
+        return queryset
+    
+    def create(self, request, *args, **kwargs):
+        """
+        coupon_id를 받아서, coupon_id에 해당하는 쿠폰을 현재 쿠폰북에 즐겨찾기 쿠폰으로 등록합니다.
+        """
+        couponbook_id = self.kwargs['couponbook_id']
+        couponbook = get_object_or_404(CouponBook, id=couponbook_id)
+        serializer = self.get_serializer_class()(data=request.data, context={'request': request, 'couponbook': couponbook})
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+
+@extend_schema_view(
+    delete=extend_schema(
+        description="즐겨찾기 쿠폰 id에 해당하는 쿠폰을 즐겨찾기 목록에서 제거합니다.",
+    )
+)
+class FavoriteCouponDetailView(DestroyAPIView):
+    """
+    현재 즐겨찾기 쿠폰을 즐겨찾기에서 삭제하는 뷰입니다.
+    """
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+    serializer_class = FavoriteCouponDetailResponseSerializer
+    queryset = FavoriteCoupon.objects.all()
+    lookup_url_kwarg = 'favorite_id'
 
 
 # ----------------------------- 쿠폰 템플릿 -------------------------------
@@ -184,3 +244,11 @@ class StampListView(ListCreateAPIView):
         self.perform_create(serializer)
         headers = self.get_success_headers(serializer.data)
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+
+class StampDetailView(RetrieveAPIView):
+    """
+    한 스탬프를 조회하는 데에 사용되는 뷰입니다.
+    """
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+    queryset = Stamp.objects.all()
