@@ -133,6 +133,32 @@ class CouponBookResponseSerializer(serializers.ModelSerializer):
     """
     쿠폰북을 조회하는 응답에 사용되는 시리얼라이저입니다.
     """
+    favorite_counts = serializers.SerializerMethodField()
+    coupon_counts = serializers.SerializerMethodField()
+    stamp_counts = serializers.SerializerMethodField()
+
+    def get_favorite_counts(self, obj: CouponBook) -> int:
+        """
+        즐겨찾기 한 쿠폰의 개수입니다.
+        """
+        coupons = Coupon.objects.filter(couponbook=obj, is_favorite=True)
+        return coupons.count()
+    
+    def get_coupon_counts(self, obj: CouponBook) -> int:
+        """
+        쿠폰북에 등록한 쿠폰의 개수입니다.
+        """
+        coupons = Coupon.objects.filter(couponbook=obj)
+        return coupons.count()
+    
+    def get_stamp_counts(self, obj: CouponBook) -> int:
+        """
+        지금까지 적립한 스탬프의 개수입니다.
+        """
+        user = self.context['request'].user
+        stamps = Stamp.objects.filter(customer=user)
+        return stamps.count()
+
     class Meta:
         model = CouponBook
         fields = '__all__'
