@@ -1,9 +1,19 @@
+from typing import Literal
 from django.contrib import admin
-from django.contrib.auth.admin import UserAdmin
+from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+
 from .models import User
 
-# 커스텀 User 모델을 Django 관리자 페이지에 등록
 @admin.register(User)
-class CustomUserAdmin(UserAdmin):
-    # 필요한 경우 여기에 사용자 관리 설정을 추가할 수 있습니다.
-    pass
+class UserAdmin(BaseUserAdmin):
+    fieldsets = BaseUserAdmin.fieldsets + (
+        ("권한", {"fields": ("role",)}),
+    )
+
+    # 목록(list_display)에 role 필드를 추가합니다.
+    list_display: tuple[Literal['username'], Literal['email'], Literal['role'], Literal['is_staff']] = (
+        "username",
+        "email",
+        "role",
+        "is_staff",
+    )
