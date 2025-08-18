@@ -10,6 +10,9 @@ from django.db import transaction
 from rest_framework import serializers
 
 from .models import FavoriteLocation, User
+# ----------여기 추가-----------
+from couponbook.serializers import PlaceCreateSerializer, PlaceSerializer
+from couponbook.models import Place
 
 User: type[AbstractUser] = get_user_model()
 
@@ -24,21 +27,8 @@ class FavoriteLocationSerializer(serializers.ModelSerializer):
         fields: list[str] = ["province", "city", "district"]
 
 
-class RegisterSerializer(serializers.ModelSerializer):
-    """
-    손님 또는 점주 회원가입을 위한 공용 시리얼라이저입니다.
-
-    **특징:**
-    - `password` 필드는 쓰기 전용(`write_only`)이며, 비밀번호 유효성 검사를 수행합니다.
-    - `favorite_locations` 필드는 `FavoriteLocationSerializer`를 사용하여 중첩 직렬화를 지원합니다.
-    - `favorite_locations`는 **최소 1개 이상 필수**입니다.
-    - `role`은 API 뷰(`views.py`)에서 결정되어 시리얼라이저 컨텍스트로 전달됩니다.
-    """
+class BaseRegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, min_length=8)
-
-    favorite_locations = FavoriteLocationSerializer(
-        many=True, required=True, min_length=1
-    )
 
     class Meta:
         model = User
@@ -48,14 +38,12 @@ class RegisterSerializer(serializers.ModelSerializer):
             Literal["email"],
             Literal["password"],
             Literal["phone"],
-            Literal["favorite_locations"],
-        ] = ("id", "username", "email", "password", "phone", "favorite_locations")
+        ] = ("id", "username", "email", "password", "phone")
         extra_kwargs: dict[str, dict[str, bool]] = {
             "email": {"required": True},
         }
 
     def validate_password(self, value: str) -> str:
-        """Django의 기본 비밀번호 유효성 검사 규칙을 적용합니다."""
         try:
             validate_password(value)
         except DjangoValidationError as e:
@@ -64,26 +52,45 @@ class RegisterSerializer(serializers.ModelSerializer):
 
     @transaction.atomic
     def create(self, validated_data: dict[str, Any]) -> User:
-        """
-        새로운 사용자(`User`)와 관련된 자주 가는 지역(`FavoriteLocation`) 객체를 함께 생성합니다.
-        `role` 값은 뷰에서 전달된 컨텍스트를 사용합니다.
-        """
-        role: str = self.context["role"]  # 뷰에서 주입
+        role: str = self.context["role"]
         password: str = validated_data.pop("password")
-
-        # favorite_locations 데이터를 별도로 분리합니다.
         favorite_locations_data = validated_data.pop("favorite_locations", [])
+        
+        # place_data를 pop하여 변수에 저장합니다.
+        place_data = validated_data.pop("place", None)
 
-        # User 객체 생성 및 비밀번호 설정
         user: User = User(**validated_data, role=role)
         user.set_password(password)
         user.save()
 
-        # 분리한 favorite_locations 데이터를 사용해 FavoriteLocation 객체들을 생성합니다.
-        for location_data in favorite_locations_data:
-            FavoriteLocation.objects.create(user=user, **location_data)
+        if favorite_locations_data:  # 손님일 경우에만 실행
+            for location_data in favorite_locations_data:
+                FavoriteLocation.objects.create(user=user, **location_data)
+
+        if place_data:  # 점주일 경우에만 실행
+            from couponbook.models import Place
+            Place.objects.create(owner=user, **place_data)
 
         return user
+
+
+class RegisterCustomerSerializer(BaseRegisterSerializer):
+    favorite_locations = FavoriteLocationSerializer(
+        many=True, required=True, min_length=1
+    )
+
+    class Meta(BaseRegisterSerializer.Meta):
+        fields = BaseRegisterSerializer.Meta.fields + ("favorite_locations",)
+
+
+class RegisterOwnerSerializer(BaseRegisterSerializer):
+    # PlaceCreateSerializer를 중첩 시리얼라이저로 추가합니다.
+    # required=True로 설정하여 가게 정보가 필수로 등록되도록 합니다.
+    place = PlaceCreateSerializer(required=True)
+
+    class Meta(BaseRegisterSerializer.Meta):
+        fields = BaseRegisterSerializer.Meta.fields + ("place",)
+
 
 
 class UserUpdateSerializer(serializers.ModelSerializer):
@@ -125,9 +132,10 @@ class UserUpdateSerializer(serializers.ModelSerializer):
 
         # 기존 favorite_locations 데이터 모두 삭제 후,
         # 새로운 데이터로 다시 생성
-        instance.favorite_locations.all().delete()
-        for location_data in favorite_locations_data:
-            FavoriteLocation.objects.create(user=instance, **location_data)
+        if favorite_locations_data:
+            instance.favorite_locations.all().delete()
+            for location_data in favorite_locations_data:
+                FavoriteLocation.objects.create(user=instance, **location_data)
 
         return instance
 
@@ -155,6 +163,22 @@ class MeSerializer(serializers.ModelSerializer):
 
     favorite_locations = FavoriteLocationSerializer(many=True, read_only=True)
 
+    # 점주인 경우 가게 정보를 함께 반환하도록 PlaceSerializer를 추가합니다.
+    # -------------여기 추가--------------
+    place = serializers.SerializerMethodField()
+
+    def get_place(self, obj: User) -> dict | None:
+        """
+        사용자가 점주인 경우, 연결된 가게 정보를 반환합니다.
+        """
+        if not obj.is_owner():
+            return None
+        try:
+            place = obj.place  # 없으면 Place.DoesNotExist 발생
+        except place.DoesNotExist:
+            return None
+        return PlaceSerializer(place).data
+    
     class Meta:
         model = User
-        fields = ["id", "username", "email", "role", "favorite_locations"]
+        fields = ["id", "username", "email", "role", "favorite_locations", "place"]

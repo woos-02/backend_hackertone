@@ -11,6 +11,17 @@ from .curation.utils import AICurator, UserStatistics
 from .models import *
 from .serializers import *
 
+"""여기 추가"""
+from rest_framework import generics, permissions, status, filters
+from rest_framework.request import Request
+from rest_framework.views import APIView
+
+from .models import CouponTemplate, Place
+from .serializers import CouponTemplateCreateSerializer, PlaceSerializer
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.exceptions import PermissionDenied, ValidationError
+from rest_framework import serializers as drf_serializers
+
 # Create your views here.
 
 # 각 인스턴스를 얻는 로직은 아래와 같습니다.
@@ -253,7 +264,49 @@ class CouponTemplateDetailView(RetrieveAPIView):
     queryset = CouponTemplate.objects.filter(is_on=True)
     lookup_url_kwarg = 'coupon_template_id'
 
+"""여기 추가"""
+@extend_schema(
+    tags=["Owner"],
+    summary="점주: 새로운 쿠폰 템플릿 등록",
+    request=CouponTemplateCreateSerializer,
+    responses={201: CouponTemplateCreateSerializer},
+)
+class CouponTemplateCreateView(generics.CreateAPIView):
+    """
+    점주가 본인의 가게에 새로운 쿠폰 템플릿을 등록하는 API 뷰입니다.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = CouponTemplateCreateSerializer
 
+    def perform_create(self, serializer):
+        user = self.request.user
+        if not getattr(user, "is_owner", lambda: False)():
+            raise PermissionDenied("점주만 쿠폰 템플릿을 등록할 수 있습니다.")
+        place = getattr(user, "place", None)
+        if place is None:
+            raise ValidationError({"detail": "등록된 가게가 없습니다. 먼저 가게를 등록해주세요."})
+        return serializer.save(place=place)
+    
+# 여기 추가
+@extend_schema(
+    tags=["Guest"],
+    summary="가게 목록 검색",
+    description="""
+    가게 목록을 조회하고, 쿼리 파라미터를 사용해 검색할 수 있습니다.
+    - `search`: `name` 또는 `address` 필드에서 키워드 검색
+    """,
+)
+class PlaceListView(generics.ListAPIView):
+    """
+    가게 목록을 조회하고 검색/필터링 기능을 제공하는 API 뷰입니다.
+    """
+    queryset = Place.objects.all()
+    serializer_class = PlaceSerializer
+    permission_classes = [permissions.AllowAny]
+    authentication_classes = []                          # ✅ 토큰 불필요
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    search_fields = ['name', 'address']
+    
 # -------------------------------- 스탬프 ---------------------------------
 @extend_schema_view(
     get=extend_schema(
@@ -279,9 +332,11 @@ class StampListView(ListCreateAPIView):
         URL의 coupon_id를 바탕으로 해당 쿠폰에 속한 스탬프들을 조회합니다.
         """
         coupon_id: int = self.kwargs['coupon_id']
-        return Stamp.objects.filter(coupon_id=coupon_id)
+        return (Stamp.objects
+               .filter(coupon_id=coupon_id)
+               .select_related("receipt", "customer"))
     
-    def get_serializer_class(self) -> serializers.ModelSerializer:
+    def get_serializer_class(self) -> drf_serializers.ModelSerializer:
         if self.request.method == 'GET':
             return StampListResponseSerializer
         
@@ -294,12 +349,19 @@ class StampListView(ListCreateAPIView):
         coupon_id: int = self.kwargs['coupon_id']
 
         # request의 data에는 영수증 번호만 들어 있고, 시리얼라이저의 create에서 context를 통해 쿠폰 id와 유저를 등록함
-        request_serializer = self.get_serializer_class()(data=request.data, context={'request': request, 'coupon_id': coupon_id})
+        # request_serializer = self.get_serializer_class()(data=request.data, context={'request': request, 'coupon_id': coupon_id})
+        # DRF 관용구로 컨텍스트 구성
+        ctx = self.get_serializer_context()   # {'request', 'format', 'view'}
+        ctx.update({'coupon_id': coupon_id})
+        request_serializer = self.get_serializer(data=request.data, context=ctx)
         # 시리얼라이저의 유효성 검사에서 기발급된 스탬프 확인 및 등록된 영수증 확인
         request_serializer.is_valid(raise_exception=True)
-        instance = self.perform_create(request_serializer)
-        headers = self.get_success_headers(request_serializer.data)
-        response_serializer = StampDetailResponseSerializer(instance)
+        # instance = self.perform_create(request_serializer)
+        # headers = self.get_success_headers(request_serializer.data)
+        # response_serializer = StampDetailResponseSerializer(instance)
+        instance = request_serializer.save()
+        response_serializer = StampDetailResponseSerializer(instance, context=self.get_serializer_context())
+        headers = self.get_success_headers(response_serializer.data)
         return Response(response_serializer.data, status=status.HTTP_201_CREATED, headers=headers)
     
     def perform_create(self, serializer) -> Stamp:

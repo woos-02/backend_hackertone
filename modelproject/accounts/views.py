@@ -9,18 +9,16 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework_simplejwt.token_blacklist.models import (
-    BlacklistedToken,
-    OutstandingToken,
-)
+from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken,OutstandingToken
+
 from rest_framework_simplejwt.tokens import RefreshToken, TokenError
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from .auth_utils import IdentifierTokenObtainPairSerializer
-from .models import FavoriteLocation
 from .serializers import (
     MeSerializer,
-    RegisterSerializer,
+    RegisterCustomerSerializer,
+    RegisterOwnerSerializer,
     UserMiniSerializer,
     UserUpdateSerializer,
 )
@@ -31,8 +29,8 @@ User: type[AbstractUser] = get_user_model()
 @extend_schema(
     tags=["Auth"],
     summary="손님 회원가입",
-    request=RegisterSerializer,
-    responses={201: RegisterSerializer},
+    request=RegisterCustomerSerializer,
+    responses={201: RegisterCustomerSerializer},
     examples=[
         OpenApiExample(
             "손님 회원가입 예시",
@@ -63,23 +61,23 @@ class RegisterCustomerView(APIView):
     def post(self, request: Request) -> Response:
         """
         새로운 손님 사용자를 생성합니다.
-        `RegisterSerializer`를 사용해 요청 데이터를 검증하고, `CUSTOMER` 역할을 할당합니다.
+        `RegisterCustomerSerializer`를 사용해 요청 데이터를 검증하고, `CUSTOMER` 역할을 할당합니다.
         """
-        serializer = RegisterSerializer(
+        serializer = RegisterCustomerSerializer(
             data=request.data, context={"role": User.Role.CUSTOMER}
         )
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
 
         # 비밀번호는 write_only 이므로 응답에 포함되지 않음
-        return Response(RegisterSerializer(user).data, status=status.HTTP_201_CREATED)
+        return Response(RegisterCustomerSerializer(user).data, status=status.HTTP_201_CREATED)
 
 
 @extend_schema(
     tags=["Auth"],
     summary="점주 회원가입",
-    request=RegisterSerializer,
-    responses={201: RegisterSerializer},
+    request=RegisterOwnerSerializer,
+    responses={201: RegisterOwnerSerializer},
     # 점주 회원가입 예시 -> Customer와 동일
 )
 class RegisterOwnerView(APIView):
@@ -99,15 +97,15 @@ class RegisterOwnerView(APIView):
     def post(self, request: Request) -> Response:
         """
         새로운 점주 사용자를 생성합니다.
-        `RegisterSerializer`를 사용해 요청 데이터를 검증하고, `OWNER` 역할을 할당합니다.
+        `RegisterOwnerSerializer`를 사용해 요청 데이터를 검증하고, `OWNER` 역할을 할당합니다.
         """
-        serializer = RegisterSerializer(
+        serializer = RegisterOwnerSerializer(
             data=request.data, context={"role": User.Role.OWNER}
         )
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
-        return Response(RegisterSerializer(user).data, status=status.HTTP_201_CREATED)
-
+        return Response(RegisterOwnerSerializer(user).data, status=status.HTTP_201_CREATED)
+# -> 여기 수정 ------------------------
 
 @extend_schema(
     tags=["Auth"],
