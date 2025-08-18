@@ -26,6 +26,14 @@ class IdentifierTokenObtainPairSerializer(TokenObtainPairSerializer):
             self.fields[self.username_field].required = False
 
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        """
+    사용자로부터 'identifier' 또는 'username'을 받아 유효성을 검사합니다.
+
+    'identifier' 필드는 username이나 email 중 하나를 담을 수 있습니다.
+    만약 username과 identifier 둘 다 없으면 에러를 발생시킵니다.
+    identifier만 있을 경우, username 또는 email과 일치하는 사용자를 찾아
+    'TokenObtainPairSerializer'의 'username' 필드에 실제 username을 할당합니다.
+    """
         identifier = attrs.pop("identifier", None)
         username: Any | None = attrs.get(self.username_field)
 

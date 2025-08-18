@@ -46,9 +46,11 @@ INSTALLED_APPS = [
     "debug_toolbar",  # 디버깅 툴바
     "drf_spectacular",  # API 문서화
     "rest_framework_simplejwt",
+    'rest_framework_simplejwt.token_blacklist',
     "accounts",
     "couponbook",
     "utils",
+    "data_api",
 ]
 
 MIDDLEWARE = [
