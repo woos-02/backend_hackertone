@@ -70,6 +70,7 @@ class RegisterCustomerView(APIView):
         )
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
+
         # 비밀번호는 write_only 이므로 응답에 포함되지 않음
         return Response(RegisterSerializer(user).data, status=status.HTTP_201_CREATED)
 

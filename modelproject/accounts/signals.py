@@ -18,4 +18,5 @@ def create_coupon_book(sender, instance, created, **kwargs):
 
         except Exception as e:
             # 예외가 발생하면 로깅을 남겨 디버깅에 도움
+
             print(f"Error creating CouponBook for user {instance.username}: {e}")

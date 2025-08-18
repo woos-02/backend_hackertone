@@ -1,6 +1,9 @@
 from django.contrib import admin
 
-from .models import Coupon, CouponBook, CouponTemplate, Receipt, RewardsInfo, Stamp
+from django.db import models
+
+from .models import (Coupon, CouponBook, CouponTemplate, Place, Receipt,
+                     RewardsInfo, Stamp)
 
 
 # CouponBook 모델을 Django 관리자 페이지에 등록
@@ -21,10 +24,7 @@ class CouponAdmin(admin.ModelAdmin):
         "id",
         "couponbook",
         "original_template",
-        "is_completed",
-        "is_favorite",
     )
-    list_filter = ("is_completed", "is_favorite")
     search_fields = ("couponbook__user__username", "original_template__id")
 
 
@@ -34,11 +34,8 @@ class CouponTemplateAdmin(admin.ModelAdmin):
     list_display = (
         "id",
         "valid_until",
-        "max_stamps",
         "is_on",
         "views",
-        "saves",
-        "uses",
         "created_at",
     )
     list_filter = ("is_on",)
@@ -56,12 +53,12 @@ class RewardsInfoAdmin(admin.ModelAdmin):
 @admin.register(Stamp)
 class StampAdmin(admin.ModelAdmin):
     # 'related_payment' 대신 'receipt_number' 필드를 사용하도록 수정합니다.
-    list_display = ("id", "coupon", "customer", "receipt_number", "created_at")
+    list_display = ("id", "coupon", "customer", "receipt", "created_at")
     list_filter = ("customer",)
     search_fields = (
         "coupon__id",
         "customer__username",
-        "receipt_number__receipt_number",
+        "receipt__receipt_number",
     )
 
 
@@ -70,3 +67,8 @@ class StampAdmin(admin.ModelAdmin):
 class ReceiptAdmin(admin.ModelAdmin):
     list_display = ("receipt_number", "created_at")
     search_fields = ("receipt_number",)
+
+@admin.register(Place)
+class PlaceAdmin(admin.ModelAdmin):
+    list_display = ("id", "name", "address", "tel")
+    search_fields = ("id", "name", "address", "tel")
