@@ -1,7 +1,8 @@
 from django.shortcuts import get_object_or_404
 from django.utils.timezone import now
 from drf_spectacular.types import OpenApiTypes
-from drf_spectacular.utils import extend_schema_field
+from drf_spectacular.utils import (OpenApiExample, extend_schema_field,
+                                   extend_schema_serializer)
 from rest_framework import serializers
 from rest_framework.reverse import reverse
 
@@ -9,7 +10,16 @@ from .models import *
 
 # 시리얼라이저는 역순으로 정의되어 있습니다.
 
+DATETIME_FORMAT = "%Y-%m-%d %H:%M" # 기본 datetime 출력 포맷
+TIME_FORMAT = "%H:%M" # 기본 time 출력 포맷
+
 # -------------------------- 스탬프 ----------------------------------
+@extend_schema_serializer(
+    examples=[
+        OpenApiExample("예시",
+                       {'receipt': '01234567890'})
+    ]
+)
 class StampListRequestSerializer(serializers.ModelSerializer):
     """
     스탬프를 생성(적립)하는 데에 사용되는 시리얼라이저입니다. 입력받은 영수증 번호를 바탕으로 스탬프를 생성합니다.
@@ -45,7 +55,13 @@ class StampListRequestSerializer(serializers.ModelSerializer):
         model = Stamp 
         fields = ['receipt']
 
-
+@extend_schema_serializer(
+    examples=[
+        OpenApiExample("예시",
+                       {'id': 1,
+                        'stamp_url': 'http://localhost:8000/couponbook/stamps/1'})
+    ]
+)
 class StampListResponseSerializer(serializers.ModelSerializer):
     """
     스탬프의 목록을 조회하는 응답에 사용되는 시리얼라이저입니다.
@@ -64,16 +80,31 @@ class StampListResponseSerializer(serializers.ModelSerializer):
         model = Stamp
         fields = ['id', 'stamp_url']
 
+@extend_schema_serializer(
+    examples=[
+        OpenApiExample("예시",
+                       {'id': 1,
+                        'created_at': '2025-08-18 21:00'})
+    ]
+)
 class StampDetailResponseSerializer(serializers.ModelSerializer):
     """
     한 스탬프의 정보를 조회하는 응답에 사용되는 시리얼라이저입니다.
     """
+    created_at = serializers.DateTimeField(DATETIME_FORMAT)
     class Meta:
         model = Stamp
         fields = ['id', 'created_at']
 
 
 # ------------------------ 혜택 정보 ---------------------------
+@extend_schema_serializer(
+    examples=[
+        OpenApiExample("예시",
+                       {'amount': 10,
+                        'reward': '아메리카노 1잔 무료'})
+    ]
+)
 class RewardsInfoDetailSerializer(serializers.ModelSerializer):
     """
     쿠폰에 해당하는 혜택 정보를 조회하는 시리얼라이저입니댜.
@@ -84,21 +115,58 @@ class RewardsInfoDetailSerializer(serializers.ModelSerializer):
 
 
 # ---------------------------- 가게 ---------------------------------------
+@extend_schema_serializer(
+    examples=[
+        OpenApiExample("예시",
+                       {'id': 1,
+                        'name': '매머드 커피',
+                        'address': '서울 동대문구 이문동 264-223',
+                        'image_url': 'http://localhost:8000',
+                        'opens_at': '`08:00',
+                        'closes_at': '21:00',
+                        'last_order': '20:30',
+                        'tel': '0507-1361-0962',})
+    ]
+)
 class PlaceDetailResponseSerializer(serializers.ModelSerializer):
+    """
+    가게 정보를 조회하는 응답에 사용되는 시리얼라이저입니다.
+    """
+    opens_at = serializers.TimeField(TIME_FORMAT)
+    closes_at = serializers.TimeField(TIME_FORMAT)
+    last_order = serializers.TimeField(TIME_FORMAT)
+
     class Meta:
         model = Place
         fields = '__all__'
 
 
 # ------------------------ 쿠폰 템플릿 -------------------------
+@extend_schema_serializer(
+    examples=[
+        OpenApiExample("예시",
+                       {'id': 1,
+                        'max_stamps': 10,
+                        'saves': 5,
+                        'uses': 2,
+                        'valid_until': '2025-11-11 23:59',
+                        'first_n_persons': 50,
+                        'is_on': True,
+                        'views': 8,
+                        'created_at': '2025-08-18 21:30',})
+    ]
+)
 class CouponTemplateListSerializer(serializers.ModelSerializer):
     """
     점주가 등록하여 게시중인 쿠폰 템플릿을 조회하는 시리얼라이저입니다.
     """
+    place = PlaceDetailResponseSerializer()
     reward_info = RewardsInfoDetailSerializer()
     max_stamps = serializers.SerializerMethodField()
     saves = serializers.SerializerMethodField()
     uses = serializers.SerializerMethodField()
+    valid_until = serializers.DateTimeField(DATETIME_FORMAT)
+    created_at = serializers.DateTimeField(DATETIME_FORMAT)
 
     def get_max_stamps(self, obj: CouponTemplate) -> int:
         """
@@ -129,6 +197,17 @@ class CouponTemplateListSerializer(serializers.ModelSerializer):
         model = CouponTemplate
         fields = '__all__'
 
+@extend_schema_serializer(
+    examples=[
+        OpenApiExample("예시",
+                       {'id': 1,
+                        'max_stamps': 10,
+                        'current_n_remaining': 45,
+                        'valid_until': '2025-11-11 23:59',
+                        'first_n_persons': 50,
+                        'created_at': '2025-08-18 21:30',})
+    ]
+)
 class CouponTemplateDetailSerializer(serializers.ModelSerializer):
     """
     개별 쿠폰 템플릿을 조회하는 응답에 사용되는 시리얼라이저입니다.
@@ -136,7 +215,9 @@ class CouponTemplateDetailSerializer(serializers.ModelSerializer):
     reward_info = RewardsInfoDetailSerializer()
     max_stamps = serializers.SerializerMethodField()
     current_n_remaining = serializers.SerializerMethodField()
+    valid_until = serializers.DateTimeField(DATETIME_FORMAT)
     place = PlaceDetailResponseSerializer()
+    created_at = serializers.DateTimeField(DATETIME_FORMAT)
 
     def get_max_stamps(self, obj: CouponTemplate) -> int:
         """
@@ -159,6 +240,12 @@ class CouponTemplateDetailSerializer(serializers.ModelSerializer):
 
 
 # --------------------------- 쿠폰 -----------------------------
+@extend_schema_serializer(
+    examples=[
+        OpenApiExample("예시",
+                       {'original_template': 1,})
+    ]
+)
 class CouponListRequestSerializer(serializers.ModelSerializer):
     """
     쿠폰을 생성하는 데에 사용되는 시리얼라이저입니다.
@@ -195,15 +282,30 @@ class CouponListRequestSerializer(serializers.ModelSerializer):
         model = Coupon
         fields = ['original_template']
 
+@extend_schema_serializer(
+    examples=[
+        OpenApiExample("예시",
+                       {'id': 1,
+                        'coupon_url': 'http://localhost:8000/couponbook/coupons/1',
+                        'is_favorite': True,
+                        'is_completed': False,
+                        'is_expired': False,
+                        'days_remaining': 7,
+                        'saved_at': '2025-08-18 21:35',
+                        'couponbook': 1,})
+    ]
+)
 class CouponListResponseSerializer(serializers.ModelSerializer):
     """
     쿠폰의 목록을 조회하는 응답에 사용되는 시리얼라이저입니다.
     """
     coupon_url = serializers.SerializerMethodField()
+    place = serializers.SerializerMethodField()
     is_favorite = serializers.SerializerMethodField()
     is_completed = serializers.SerializerMethodField()
     is_expired = serializers.SerializerMethodField()
     days_remaining = serializers.SerializerMethodField()
+    saved_at = serializers.DateTimeField(DATETIME_FORMAT)
 
     @extend_schema_field(OpenApiTypes.URI)
     def get_coupon_url(self, obj: Coupon):
@@ -213,6 +315,14 @@ class CouponListResponseSerializer(serializers.ModelSerializer):
         request = self.context['request']
         return reverse('couponbook:coupon-detail', kwargs={'coupon_id': obj.id}, request=request)
     
+    def get_place(self, obj: Coupon) -> PlaceDetailResponseSerializer:
+        """
+        해당 쿠폰과 연관된 가게 정보입니다.
+        """
+        original_template = obj.original_template
+        place = original_template.place
+        return PlaceDetailResponseSerializer(place).data
+
     def get_is_favorite(self, obj: Coupon) -> bool:
         """
         해당 쿠폰을 즐겨찾기에 등록했는지의 여부입니다.
@@ -256,16 +366,31 @@ class CouponListResponseSerializer(serializers.ModelSerializer):
         model = Coupon
         exclude = ['original_template']
 
+@extend_schema_serializer(
+    examples=[
+        OpenApiExample("예시",
+                       {'id': 1,
+                        'saved_at': '2025-08-18 21:35',
+                        'couponbook': 1,})
+    ]
+)
 class CouponDetailResponseSerializer(serializers.ModelSerializer):
     """
     개별 쿠폰을 조회하는 응답에 사용되는 시리얼라이저입니다. 스탬프가 포함됩니다.
     """
+    saved_at = serializers.DateTimeField(DATETIME_FORMAT)
     stamps = StampListResponseSerializer(many=True)
 
     class Meta:
         model = Coupon
         exclude = ['original_template']
 
+@extend_schema_serializer(
+    examples=[
+        OpenApiExample("예시",
+                       {'coupon': 1,})
+    ]
+)
 class FavoriteCouponListRequestSerializer(serializers.ModelSerializer):
     """
     쿠폰을 즐겨찾기를 등록할 때 사용되는 시리얼라이저입니다.
@@ -300,26 +425,53 @@ class FavoriteCouponListRequestSerializer(serializers.ModelSerializer):
         model = FavoriteCoupon
         fields = ['coupon']
 
+@extend_schema_serializer(
+    examples=[
+        OpenApiExample("예시",
+                       {'id': 1,
+                        'added_at': '2025-08-18 21:40',})
+    ]
+)
 class FavoriteCouponListResponseSerializer(serializers.ModelSerializer):
     """
     즐겨찾기 등록한 쿠폰을 조회하는 응답에 사용되는 시리얼라이저입니다.
     """
     coupon = CouponDetailResponseSerializer()
+    added_at = serializers.DateTimeField(DATETIME_FORMAT)
 
     class Meta:
         model = FavoriteCoupon
         exclude = ['couponbook']
 
+@extend_schema_serializer(
+    examples=[
+        OpenApiExample("예시",
+                       {'id': 1,
+                        'added_at': '2025-08-18 21:40',
+                        'coupon': 1,})
+    ]
+)
 class FavoriteCouponDetailResponseSerializer(serializers.ModelSerializer):
     """
     FavoriteCouponDetailView의 serializer_class로 지정하기 위해 만든 시리얼라이저입니다. 실제로 조회 응답에 사용되진 않습니다.
     """
+    added_at = serializers.DateTimeField(DATETIME_FORMAT)
     class Meta:
         model = FavoriteCoupon
         exclude = ['couponbook']
 
 
 # -------------------------- 쿠폰북 ----------------------------
+@extend_schema_serializer(
+    examples=[
+        OpenApiExample("예시",
+                       {'id': 1,
+                        'favorite_counts': 1,
+                        'coupon_counts': 1,
+                        'stamp_counts': 1,
+                        'user': 1,})
+    ]
+)
 class CouponBookResponseSerializer(serializers.ModelSerializer):
     """
     쿠폰북을 조회하는 응답에 사용되는 시리얼라이저입니다.
