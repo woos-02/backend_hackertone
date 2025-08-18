@@ -83,6 +83,13 @@ class RewardsInfoDetailSerializer(serializers.ModelSerializer):
         exclude = ['id', 'coupon_template']
 
 
+# ---------------------------- 가게 ---------------------------------------
+class PlaceDetailResponseSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Place
+        fields = '__all__'
+
+
 # ------------------------ 쿠폰 템플릿 -------------------------
 class CouponTemplateListSerializer(serializers.ModelSerializer):
     """
@@ -128,6 +135,8 @@ class CouponTemplateDetailSerializer(serializers.ModelSerializer):
     """
     reward_info = RewardsInfoDetailSerializer()
     max_stamps = serializers.SerializerMethodField()
+    current_n_remaining = serializers.SerializerMethodField()
+    place = PlaceDetailResponseSerializer()
 
     def get_max_stamps(self, obj: CouponTemplate) -> int:
         """
@@ -136,6 +145,13 @@ class CouponTemplateDetailSerializer(serializers.ModelSerializer):
         reward_info = obj.reward_info
         max_stamps = reward_info.amount
         return max_stamps
+    
+    def get_current_n_remaining(self, obj: CouponTemplate) -> int:
+        """
+        현재 기준으로 쿠폰을 발급받을 수 있는 인원 수입니다.
+        """
+        coupons = obj.coupons
+        return obj.first_n_persons - coupons.count()
 
     class Meta:
         model = CouponTemplate
