@@ -7,6 +7,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
+from .curation.utils import AICurator, UserStatistics
 from .models import *
 from .serializers import *
 
@@ -121,6 +122,29 @@ class CouponDetailView(RetrieveAPIView):
 
     queryset = Coupon.objects.all()
     lookup_url_kwarg = 'coupon_id'
+
+@extend_schema_view(
+    get=extend_schema(
+        description="현재 유저가 보유한 쿠폰을 바탕으로 쿠폰 큐레이션을 실행하여 추천된 쿠폰들의 목록을 반환합니다.",
+    )
+)
+class CouponCurationView(ListAPIView):
+    """
+    쿠폰 추천과 관련된 뷰입니다.
+    """
+    serializer_class = CouponListResponseSerializer
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        """
+        현재 유저의 쿠폰에서 쿠폰 큐레이션을 실행하여 추천된 쿠폰들의 쿼리셋을 반환합니다.
+        """
+        user_statistics = UserStatistics(self.request.user)
+        curator = AICurator()
+        coupon_id = curator.curate(user_statistics)
+        return Coupon.objects.filter(id=coupon_id)
+    
 
 @extend_schema_view(
     get=extend_schema(

@@ -136,7 +136,7 @@ class AICurator:
         INSTRUCTION = "너는 지금부터 개인의 취향을 분석하고, 이를 토대로 주변의 음식점을 추천해주는 비서야."
         EXAMPLE_HISTORY: dict = get_example_statistics().make_history()
         example_history_json: str = dumps(EXAMPLE_HISTORY, ensure_ascii=False)
-        EXAMPLE_PROMPT: str = self.generate_example(example_history_json, "한식당")
+        EXAMPLE_PROMPT: str = self.generate_example(example_history_json, "1")
 
         statistics_history_json: str = dumps(statistics.make_history(), ensure_ascii=False)
         input_prompt: str = self.generate_example(statistics_history_json)
@@ -146,7 +146,7 @@ class AICurator:
                 role='user', parts=[
                     types.Part(text="아래는 음식점을 추천해주는 예시야. 입력은 JSON 형식으로 주어지며, 1번 이상 방문 기록이 있는 음식점에 대해 음식점 정보와 방문 기록을 의미해."),
                     types.Part(text=EXAMPLE_PROMPT),
-                    types.Part(text="다음 입력에 대해서, 추천하는 음식점의 이름을 출력해."),
+                    types.Part(text="다음 입력에 대해서, 추천하는 음식점을 place_info로 가지고 있는 쿠폰의 id를 출력해."),
                     types.Part(text=input_prompt),
                 ]
             )
@@ -162,12 +162,12 @@ class AICurator:
 
         return response
     
-    def curate(self, statistics: UserStatistics):
+    def curate(self, statistics: UserStatistics) -> int:
         """
-        쿠폰 큐레이션을 실행합니다.
+        쿠폰 큐레이션을 실행합니다. 큐레이션 결과로 추천하는 쿠폰의 id가 반환됩니다.
         """
         if not hasattr(self, 'client'):
             self.initialize_client()
         curation_contents = self.generate_curation_contents(statistics)
         response = self.generate_response(curation_contents)
-        print(response.text)
+        return int(response.text)
