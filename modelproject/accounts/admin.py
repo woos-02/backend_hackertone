@@ -40,7 +40,7 @@ class UserAdmin(BaseUserAdmin):
     @admin.display(description="자주 가는 지역")
     def get_favorite_locations(self, obj: User) -> str:
         """
-        사용자의 모든 즐겨찾기 지역을 콤마로 구분된 문자열로 반환합니다.
+        사용자의 모든 자주 가는 지역을 콤마로 구분된 문자열로 반환합니다.
         """
         locations = obj.favorite_locations.all()
         location_names = [f"{loc.province} {loc.city} {loc.district}" for loc in locations]

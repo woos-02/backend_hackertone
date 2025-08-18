@@ -49,16 +49,16 @@ class FavoriteLocation(models.Model):
     한 명의 사용자는 여러 개의 FavoriteLocation을 가질 수 있습니다.
     """
 
-    user = models.ForeignKey(
+    user: models.ForeignKey[User] = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name="favorite_locations"
     )
-    province = models.CharField(max_length=50)  # 시/도
-    city = models.CharField(max_length=50)  # 시/군/구
-    district = models.CharField(max_length=50)  # 읍/면/동
+    province: models.CharField[str] = models.CharField(max_length=50)  # 시/도
+    city: models.CharField[str] = models.CharField(max_length=50)  # 시/군/구
+    district: models.CharField[str] = models.CharField(max_length=50)  # 읍/면/동
 
     class Meta:
         # 한 사용자가 같은 지역을 중복해서 저장하지 못하도록 설정
-        unique_together = ("user", "province", "city", "district")
+        unique_together: tuple[Literal['user'], Literal['province'], Literal['city'], Literal['district']] = ("user", "province", "city", "district")
         verbose_name = "자주 가는 지역"
         verbose_name_plural = "자주 가는 지역들"
 
