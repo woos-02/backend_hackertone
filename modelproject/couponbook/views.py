@@ -30,7 +30,8 @@ from .serializers import *
 # --------------------------------------- 쿠폰북 ---------------------------------------------
 @extend_schema_view(
     get=extend_schema(
-        description="현재 로그인된 유저의 유저 id(username이 아닙니다)에 해당하는 쿠폰북을 조회합니다."
+        description="현재 로그인된 유저의 유저 id(username이 아닙니다)에 해당하는 쿠폰북을 조회합니다.",
+        summary="현재 로그인된 유저의 쿠폰북 조회",
     )
 )
 class CouponBookDetailView(RetrieveAPIView):
@@ -57,10 +58,12 @@ class CouponBookDetailView(RetrieveAPIView):
 # ----------------------------- 쿠폰 ---------------------------------------
 @extend_schema_view(
     get=extend_schema(
-        description="쿠폰북 id에 해당하는 쿠폰북에 속한 쿠폰들의 목록을 가져옵니다."
+        description="쿠폰북 id에 해당하는 쿠폰북에 속한 쿠폰들의 목록을 가져옵니다.",
+        summary="쿠폰북에 속한 쿠폰들의 목록 조회",
     ),
     post=extend_schema(
         description="쿠폰북 id에 해당하는 쿠폰북에 쿠폰 템플릿 id에 해당하는 쿠폰 템플릿 정보를 바탕으로 실사용 쿠폰을 생성하여 등록합니다.",
+        summary="쿠폰 템플릿 바탕으로 실사용 쿠폰 등록",
         request=CouponListRequestSerializer,
         responses=CouponDetailResponseSerializer,
     ),
@@ -110,6 +113,7 @@ class CouponListView(ListCreateAPIView):
     get=extend_schema(
         description="쿠폰 id에 해당하는 쿠폰을 조회합니다. " \
             "쿠폰 목록 조회와는 다르게 쿠폰 id를 path parmaeter로 취하는 점에 주의해야 합니다.",
+        summary="단일 쿠폰 조회",
     )
 )
 class CouponDetailView(RetrieveAPIView):
@@ -126,6 +130,7 @@ class CouponDetailView(RetrieveAPIView):
 @extend_schema_view(
     get=extend_schema(
         description="현재 유저가 보유한 쿠폰을 바탕으로 쿠폰 큐레이션을 실행하여 추천된 쿠폰들의 목록을 반환합니다.",
+        summary="AI 기반 추천 쿠폰 목록 반환",
     )
 )
 class CouponCurationView(ListAPIView):
@@ -149,9 +154,11 @@ class CouponCurationView(ListAPIView):
 @extend_schema_view(
     get=extend_schema(
         description="현재 로그인되어 있는 유저의 쿠폰북에 등록되어 있는 즐겨찾기 쿠폰들을 조회합니다.",
+        summary="즐겨찾기 쿠폰 목록 조회",
     ),
     post=extend_schema(
         description="현재 로그인되어 있는 유저의 쿠폰북에 쿠폰 id에 해당하는 쿠폰을 즐겨찾기에 등록합니다.",
+        summary="즐겨찾기 쿠폰 등록",
         request=FavoriteCouponListRequestSerializer,
         responses=FavoriteCouponDetailResponseSerializer,
     )
@@ -198,6 +205,7 @@ class FavoriteCouponListView(ListCreateAPIView):
 @extend_schema_view(
     delete=extend_schema(
         description="즐겨찾기 쿠폰 id에 해당하는 쿠폰을 즐겨찾기 목록에서 제거합니다.",
+        summary="즐겨찾기 쿠폰 제거",
     )
 )
 class FavoriteCouponDetailView(DestroyAPIView):
@@ -214,7 +222,8 @@ class FavoriteCouponDetailView(DestroyAPIView):
 # ----------------------------- 쿠폰 템플릿 -------------------------------
 @extend_schema_view(
     get=extend_schema(
-        description="현재 게시중으로 설정된 쿠폰 템플릿들의 목록을 가져옵니다."
+        description="현재 게시중으로 설정된 쿠폰 템플릿들의 목록을 가져옵니다.",
+        summary="현재 게시중인 쿠폰 템플릿 목록 조회",
     )
 )
 class CouponTemplateListView(ListAPIView):
@@ -229,7 +238,8 @@ class CouponTemplateListView(ListAPIView):
 
 @extend_schema_view(
     get=extend_schema(
-        description="현재 게시중으로 설정된 쿠폰 템플릿들 중 쿠폰 템플릿 id에 해당하는 쿠폰 템플릿을 가져옵니다."
+        description="현재 게시중으로 설정된 쿠폰 템플릿들 중 쿠폰 템플릿 id에 해당하는 쿠폰 템플릿을 가져옵니다.",
+        summary="현재 게시중인 단일 쿠폰 템플릿 조회",
     )
 )
 class CouponTemplateDetailView(RetrieveAPIView):
@@ -247,10 +257,12 @@ class CouponTemplateDetailView(RetrieveAPIView):
 # -------------------------------- 스탬프 ---------------------------------
 @extend_schema_view(
     get=extend_schema(
-        description="쿠폰 id에 해당하는 쿠폰에 속한 스탬프들의 목록을 가져옵니다."
+        description="쿠폰 id에 해당하는 쿠폰에 속한 스탬프들의 목록을 가져옵니다.",
+        summary="한 쿠폰의 스탬프 목록 조회",
     ),
     post=extend_schema(
         description="영수증 번호를 바탕으로 영수증이 존재하는지, 스탬프가 이미 등록되지 않았는지 확인하고, 두 조건 모두 만족하면 스탬프를 등록합니다.",
+        summary="영수증 번호를 바탕으로 스탬프 등록",
         request=StampListRequestSerializer,
         responses=StampDetailResponseSerializer,
     )
@@ -296,6 +308,12 @@ class StampListView(ListCreateAPIView):
         """
         return serializer.save()
 
+@extend_schema_view(
+    get=extend_schema(
+        description="스탬프 id에 해당하는 스탬프의 정보를 조회합니다.",
+        summary="단일 스탬프 조회",
+    )
+)
 class StampDetailView(RetrieveAPIView):
     """
     한 스탬프를 조회하는 데에 사용되는 뷰입니다.
