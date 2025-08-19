@@ -35,6 +35,7 @@ User: type[AbstractUser] = get_user_model()
     """,
     request=RegisterCustomerSerializer,
     responses={201: RegisterCustomerSerializer},
+    auth=None,
     examples=[
         OpenApiExample(
             "손님 회원가입 예시",
@@ -61,6 +62,7 @@ class RegisterCustomerView(APIView):
 
     # DRF 브라우저에서 JSON/폼 모두 받을 수 있도록 파서 명시
     parser_classes: tuple[type[JSONParser], type[FormParser], type[MultiPartParser]] = (JSONParser, FormParser, MultiPartParser)
+    authentication_classes: tuple = ()
 
     def post(self, request: Request) -> Response:
         """
@@ -87,6 +89,7 @@ class RegisterCustomerView(APIView):
     """,
     request=RegisterOwnerSerializer,
     responses={201: RegisterOwnerSerializer},
+    auth=None,
     # 점주 회원가입 예시 -> Customer와 동일
 )
 class RegisterOwnerView(APIView):
@@ -101,6 +104,7 @@ class RegisterOwnerView(APIView):
         FormParser,
         MultiPartParser,
     )
+    authentication_classes: tuple = ()
 
     def post(self, request: Request) -> Response:
         """
@@ -137,6 +141,7 @@ class RegisterOwnerView(APIView):
             "username 직접", value={"username": "alice", "password": "P@ssw0rd!"}
         ),
     ],
+    auth=None,
 )
 class LoginView(TokenObtainPairView):
     """
@@ -146,7 +151,7 @@ class LoginView(TokenObtainPairView):
     성공 시, 클라이언트는 `access`와 `refresh` 토큰을 응답으로 받게 됩니다.
     `access` 토큰은 보호된 API에 접근할 때 사용되며, `refresh` 토큰은 `access` 토큰이 만료되었을 때 재발급받는 데 사용됩니다.
     """
-
+    authentication_classes: tuple = ()
     serializer_class = IdentifierTokenObtainPairSerializer
 
 # ------------------------ Access 토큰 재발급 -------------------------
@@ -163,6 +168,7 @@ class LoginView(TokenObtainPairView):
         200: {"description": "새로운 Access 토큰 발급", "content": {"application/json": {"examples": {"success": {"value": {"access": "new_access_token_here", "refresh": "your_refresh_token_here"}}}}}},
         401: {"description": "유효하지 않은 토큰"},
     },
+    auth=None,
 )
 class RefreshView(TokenRefreshView):
     """
@@ -172,7 +178,7 @@ class RefreshView(TokenRefreshView):
     요청 본문(JSON):
         - `refresh`: 기존에 발급받은 Refresh 토큰
     """
-
+    authentication_classes: tuple = ()
     pass
 
 # ------------------------ 사용자 정보 조회 -------------------------

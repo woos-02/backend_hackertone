@@ -1,6 +1,11 @@
 from django.urls import path
 
-from .views import *
+from .views import (
+    CouponBookDetailView, CouponListView, CouponDetailView, CouponCurationView,
+    FavoriteCouponListView, FavoriteCouponDetailView,
+    StampListView, StampDetailView,
+    CouponTemplateListView, CouponTemplateDetailView, CouponTemplateCreateView,
+    PlaceListView)
 
 app_name = 'couponbook'
 
@@ -18,6 +23,8 @@ urlpatterns = [
     # 쿠폰 템플릿 관련 엔드포인트입니다.
     path('coupon-templates/', CouponTemplateListView.as_view(), name='coupon-template-list'),
     path('coupon-templates/<int:coupon_template_id>/', CouponTemplateDetailView.as_view(), name='coupon-template-detail'),
-    path('owner/coupon-templates/create/', CouponTemplateCreateView.as_view(), name='owner-coupon-template-create'), # 여기 추가
-    path('places/', PlaceListView.as_view(), name='place-list'), # 여기 추가
+    path('owner/coupon-templates/create/', CouponTemplateCreateView.as_view(), name='owner-coupon-template-create'),
+
+    # 가게 검색
+    path('places/', PlaceListView.as_view(), name='place-list'),
 ]

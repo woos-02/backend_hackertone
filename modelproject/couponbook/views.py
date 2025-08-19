@@ -1,6 +1,6 @@
 from django.shortcuts import get_object_or_404
-from drf_spectacular.utils import extend_schema, extend_schema_view
-from rest_framework import status
+from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiExample, OpenApiParameter
+from rest_framework import status,generics, permissions, filters
 from rest_framework.generics import (DestroyAPIView, ListAPIView,
                                      ListCreateAPIView, RetrieveAPIView)
 from rest_framework.permissions import IsAuthenticated
@@ -10,11 +10,6 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 from .curation.utils import AICurator, UserStatistics
 from .models import *
 from .serializers import *
-
-"""여기 추가"""
-from rest_framework import generics, permissions, status, filters
-from rest_framework.request import Request
-from rest_framework.views import APIView
 
 from .models import CouponTemplate, Place
 from .serializers import CouponTemplateCreateSerializer, PlaceSerializer
@@ -41,8 +36,10 @@ from rest_framework import serializers as drf_serializers
 # --------------------------------------- 쿠폰북 ---------------------------------------------
 @extend_schema_view(
     get=extend_schema(
+        tags=["CouponBook"],
         description="현재 로그인된 유저의 유저 id(username이 아닙니다)에 해당하는 쿠폰북을 조회합니다.",
         summary="현재 로그인된 유저의 쿠폰북 조회",
+        responses=CouponBookResponseSerializer,
     )
 )
 class CouponBookDetailView(RetrieveAPIView):
@@ -69,14 +66,17 @@ class CouponBookDetailView(RetrieveAPIView):
 # ----------------------------- 쿠폰 ---------------------------------------
 @extend_schema_view(
     get=extend_schema(
+        tags=["Coupons"],
         description="쿠폰북 id에 해당하는 쿠폰북에 속한 쿠폰들의 목록을 가져옵니다.",
         summary="쿠폰북에 속한 쿠폰들의 목록 조회",
     ),
     post=extend_schema(
+        tags=["Coupons"],
         description="쿠폰북 id에 해당하는 쿠폰북에 쿠폰 템플릿 id에 해당하는 쿠폰 템플릿 정보를 바탕으로 실사용 쿠폰을 생성하여 등록합니다.",
         summary="쿠폰 템플릿 바탕으로 실사용 쿠폰 등록",
         request=CouponListRequestSerializer,
         responses=CouponDetailResponseSerializer,
+        examples=[OpenApiExample("요청 예시", value={"original_template": 1})],
     ),
 )
 class CouponListView(ListCreateAPIView):
@@ -122,9 +122,11 @@ class CouponListView(ListCreateAPIView):
 
 @extend_schema_view(
     get=extend_schema(
+        tags=["Coupons"],
         description="쿠폰 id에 해당하는 쿠폰을 조회합니다. " \
             "쿠폰 목록 조회와는 다르게 쿠폰 id를 path parmaeter로 취하는 점에 주의해야 합니다.",
         summary="단일 쿠폰 조회",
+        responses=CouponDetailResponseSerializer,
     )
 )
 class CouponDetailView(RetrieveAPIView):
@@ -140,6 +142,7 @@ class CouponDetailView(RetrieveAPIView):
 
 @extend_schema_view(
     get=extend_schema(
+        tags=["AI_CURATION"],
         description="현재 유저가 보유한 쿠폰을 바탕으로 쿠폰 큐레이션을 실행하여 추천된 쿠폰들의 목록을 반환합니다.",
         summary="AI 기반 추천 쿠폰 목록 반환",
     )
@@ -164,14 +167,18 @@ class CouponCurationView(ListAPIView):
 
 @extend_schema_view(
     get=extend_schema(
+        tags=["Favorites"],
         description="현재 로그인되어 있는 유저의 쿠폰북에 등록되어 있는 즐겨찾기 쿠폰들을 조회합니다.",
         summary="즐겨찾기 쿠폰 목록 조회",
+        responses=FavoriteCouponListResponseSerializer,
     ),
     post=extend_schema(
+        tags=["Favorites"],
         description="현재 로그인되어 있는 유저의 쿠폰북에 쿠폰 id에 해당하는 쿠폰을 즐겨찾기에 등록합니다.",
         summary="즐겨찾기 쿠폰 등록",
         request=FavoriteCouponListRequestSerializer,
         responses=FavoriteCouponDetailResponseSerializer,
+        examples=[OpenApiExample("요청 예시", value={"coupon": 1})],
     )
 )
 class FavoriteCouponListView(ListCreateAPIView):
@@ -215,8 +222,10 @@ class FavoriteCouponListView(ListCreateAPIView):
 
 @extend_schema_view(
     delete=extend_schema(
+        tags=["Favorites"],
         description="즐겨찾기 쿠폰 id에 해당하는 쿠폰을 즐겨찾기 목록에서 제거합니다.",
         summary="즐겨찾기 쿠폰 제거",
+        responses={204: {"description": "성공적으로 삭제됨 (No Content)"}},
     )
 )
 class FavoriteCouponDetailView(DestroyAPIView):
@@ -225,7 +234,6 @@ class FavoriteCouponDetailView(DestroyAPIView):
     """
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
-    serializer_class = FavoriteCouponDetailResponseSerializer
     queryset = FavoriteCoupon.objects.all()
     lookup_url_kwarg = 'favorite_id'
 
@@ -233,8 +241,10 @@ class FavoriteCouponDetailView(DestroyAPIView):
 # ----------------------------- 쿠폰 템플릿 -------------------------------
 @extend_schema_view(
     get=extend_schema(
-        description="현재 게시중으로 설정된 쿠폰 템플릿들의 목록을 가져옵니다.",
+        tags=["Templates"],
+        description="현재 게시중('is_on')으로 설정된 쿠폰 템플릿들의 목록을 가져옵니다.",
         summary="현재 게시중인 쿠폰 템플릿 목록 조회",
+        responses=CouponTemplateListSerializer,
     )
 )
 class CouponTemplateListView(ListAPIView):
@@ -249,8 +259,10 @@ class CouponTemplateListView(ListAPIView):
 
 @extend_schema_view(
     get=extend_schema(
+        tags=["Templates"],
         description="현재 게시중으로 설정된 쿠폰 템플릿들 중 쿠폰 템플릿 id에 해당하는 쿠폰 템플릿을 가져옵니다.",
         summary="현재 게시중인 단일 쿠폰 템플릿 조회",
+        responses=CouponTemplateDetailSerializer,
     )
 )
 class CouponTemplateDetailView(RetrieveAPIView):
@@ -264,10 +276,10 @@ class CouponTemplateDetailView(RetrieveAPIView):
     queryset = CouponTemplate.objects.filter(is_on=True)
     lookup_url_kwarg = 'coupon_template_id'
 
-"""여기 추가"""
 @extend_schema(
     tags=["Owner"],
     summary="점주: 새로운 쿠폰 템플릿 등록",
+    description="(OWNER 전용) 로그인 필요. 본인 `place`에 템플릿을 등록합니다.",
     request=CouponTemplateCreateSerializer,
     responses={201: CouponTemplateCreateSerializer},
 )
@@ -287,14 +299,23 @@ class CouponTemplateCreateView(generics.CreateAPIView):
             raise ValidationError({"detail": "등록된 가게가 없습니다. 먼저 가게를 등록해주세요."})
         return serializer.save(place=place)
     
-# 여기 추가
 @extend_schema(
-    tags=["Guest"],
+    tags=["Public"],
     summary="가게 목록 검색",
     description="""
     가게 목록을 조회하고, 쿼리 파라미터를 사용해 검색할 수 있습니다.
     - `search`: `name` 또는 `address` 필드에서 키워드 검색
     """,
+    auth=None,
+    parameters=[
+        OpenApiParameter(
+            name="search",
+            location=OpenApiParameter.QUERY,
+            description="가게명/주소 키워드",
+            required=False,
+            type=str,
+        ),
+    ],
 )
 class PlaceListView(generics.ListAPIView):
     """
@@ -303,21 +324,25 @@ class PlaceListView(generics.ListAPIView):
     queryset = Place.objects.all()
     serializer_class = PlaceSerializer
     permission_classes = [permissions.AllowAny]
-    authentication_classes = []                          # ✅ 토큰 불필요
+    authentication_classes = [] # 토큰 불필요
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
     search_fields = ['name', 'address']
     
 # -------------------------------- 스탬프 ---------------------------------
 @extend_schema_view(
     get=extend_schema(
+        tags=["Stamps"],
         description="쿠폰 id에 해당하는 쿠폰에 속한 스탬프들의 목록을 가져옵니다.",
         summary="한 쿠폰의 스탬프 목록 조회",
+        responses=StampListResponseSerializer,
     ),
     post=extend_schema(
+        tags=["Stamps"],
         description="영수증 번호를 바탕으로 영수증이 존재하는지, 스탬프가 이미 등록되지 않았는지 확인하고, 두 조건 모두 만족하면 스탬프를 등록합니다.",
         summary="영수증 번호를 바탕으로 스탬프 등록",
         request=StampListRequestSerializer,
         responses=StampDetailResponseSerializer,
+        examples=[OpenApiExample("요청 예시", value={"receipt_number": "R-20250819-0001"})],
     )
 )
 class StampListView(ListCreateAPIView):
@@ -372,8 +397,10 @@ class StampListView(ListCreateAPIView):
 
 @extend_schema_view(
     get=extend_schema(
+        tags=["Stamps"],
         description="스탬프 id에 해당하는 스탬프의 정보를 조회합니다.",
         summary="단일 스탬프 조회",
+        responses=StampDetailResponseSerializer,
     )
 )
 class StampDetailView(RetrieveAPIView):

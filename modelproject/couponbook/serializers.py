@@ -18,7 +18,7 @@ TIME_FORMAT = "%H:%M"  # 기본 time 출력 포맷
 
 
 # -------------------------- 스탬프 ----------------------------------
-@extend_schema_serializer(examples=[OpenApiExample("예시", {"receipt": "01234567890"})])
+@extend_schema_serializer(examples=[OpenApiExample("예시", {"receipt_number": "01234567890"})])
 # class StampListRequestSerializer(serializers.ModelSerializer):
 #     """
 #     스탬프를 생성(적립)하는 데에 사용되는 시리얼라이저입니다. 입력받은 영수증 번호를 바탕으로 스탬프를 생성합니다.
@@ -55,7 +55,8 @@ TIME_FORMAT = "%H:%M"  # 기본 time 출력 포맷
 #         fields = ["receipt"]
 class StampListRequestSerializer(serializers.ModelSerializer):
     """
-    영수증 번호 문자열을 받아 Receipt를 조회/자동 생성 후 Stamp를 만듭니다.
+    스탬프 생성(적립) 요청에 사용되는 시리얼라이저입니다.
+    `receipt_number` 필드로 영수증 번호를 받아 스탬프를 생성합니다.
     """
     receipt_number = serializers.CharField(write_only=True)
 
@@ -64,6 +65,11 @@ class StampListRequestSerializer(serializers.ModelSerializer):
         fields = ["receipt_number"]
 
     def validate(self, data):
+        """
+        1. 영수증 번호가 필요합니다.
+        2. 영수증 번호로 Receipt 객체를 조회하거나 새로 생성합니다.
+        3. 이미 스탬프가 발급된 영수증 번호인지 확인합니다.
+        """
         num = data.get("receipt_number")
         if not num:
             raise serializers.ValidationError({"receipt_number": "영수증 번호가 필요합니다."})
@@ -173,7 +179,6 @@ class PlaceDetailResponseSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
-# 여기 추가
 class PlaceSerializer(serializers.ModelSerializer):
     """
     가게(Place) 정보를 조회할 때 사용하는 시리얼라이저입니다.
@@ -210,6 +215,20 @@ class PlaceCreateSerializer(serializers.ModelSerializer):
                 "is_on": True,
                 "views": 8,
                 "created_at": "2025-08-18 21:30",
+                "place": {
+                    "id": 1,
+                    "name": "매머드 커피",
+                    "address": "서울 동대문구 이문동 264-223",
+                    "image_url": "http://localhost:8000",
+                    "opens_at": "08:00",
+                    "closes_at": "21:00",
+                    "last_order": "20:30",
+                    "tel": "0507-1361-0962",
+                },
+                "reward_info": {
+                    "amount": 10,
+                    "reward": "아메리카노 1잔 무료"
+                }
             },
         )
     ]
@@ -302,8 +321,6 @@ class CouponTemplateDetailSerializer(serializers.ModelSerializer):
         exclude = ["is_on", "views"]
 
 
-"""여기 추가"""
-
 
 class CouponTemplateCreateSerializer(serializers.ModelSerializer):
     """
@@ -329,7 +346,7 @@ class CouponTemplateCreateSerializer(serializers.ModelSerializer):
 @extend_schema_serializer(
     examples=[
         OpenApiExample(
-            "예시",
+            "쿠폰 등록 요청",
             {
                 "original_template": 1,
             },
@@ -339,6 +356,7 @@ class CouponTemplateCreateSerializer(serializers.ModelSerializer):
 class CouponListRequestSerializer(serializers.ModelSerializer):
     """
     쿠폰을 생성하는 데에 사용되는 시리얼라이저입니다.
+    `original_template` 필드로 쿠폰 템플릿 ID를 받습니다
     """
 
     def validate(self, data) -> dict:
@@ -381,10 +399,20 @@ class CouponListRequestSerializer(serializers.ModelSerializer):
 @extend_schema_serializer(
     examples=[
         OpenApiExample(
-            "예시",
+            "쿠폰 목록 응답 예시",
             {
                 "id": 1,
                 "coupon_url": "http://localhost:8000/couponbook/coupons/1",
+                "place": {
+                    "id": 1,
+                    "name": "매머드 커피",
+                    "address": "서울 동대문구 이문동 264-223",
+                    "image_url": "http://localhost:8000",
+                    "opens_at": "08:00",
+                    "closes_at": "21:00",
+                    "last_order": "20:30",
+                    "tel": "0507-1361-0962",
+                },
                 "is_favorite": True,
                 "is_completed": False,
                 "is_expired": False,
@@ -471,11 +499,17 @@ class CouponListResponseSerializer(serializers.ModelSerializer):
 @extend_schema_serializer(
     examples=[
         OpenApiExample(
-            "예시",
+            "단일 쿠폰 조회 응답 예시",
             {
                 "id": 1,
                 "saved_at": "2025-08-18 21:35",
                 "couponbook": 1,
+                "stamps": [
+                    {
+                        "id": 1,
+                        "stamp_url": "http://localhost:8000/couponbook/stamps/1"
+                    }
+                ]
             },
         )
     ]
@@ -496,7 +530,7 @@ class CouponDetailResponseSerializer(serializers.ModelSerializer):
 @extend_schema_serializer(
     examples=[
         OpenApiExample(
-            "예시",
+            "즐겨찾기 등록 요청",
             {
                 "coupon": 1,
             },
@@ -544,10 +578,21 @@ class FavoriteCouponListRequestSerializer(serializers.ModelSerializer):
 @extend_schema_serializer(
     examples=[
         OpenApiExample(
-            "예시",
+            "즐겨찾기 목록 응답 예시",
             {
                 "id": 1,
                 "added_at": "2025-08-18 21:40",
+                "coupon": {
+                    "id": 1,
+                    "saved_at": "2025-08-18 21:35",
+                    "couponbook": 1,
+                    "stamps": [
+                        {
+                            "id": 1,
+                            "stamp_url": "http://localhost:8000/couponbook/stamps/1"
+                        }
+                    ]
+                }
             },
         )
     ]
@@ -568,7 +613,7 @@ class FavoriteCouponListResponseSerializer(serializers.ModelSerializer):
 @extend_schema_serializer(
     examples=[
         OpenApiExample(
-            "예시",
+            "즐겨찾기 상세 응답 예시",
             {
                 "id": 1,
                 "added_at": "2025-08-18 21:40",
