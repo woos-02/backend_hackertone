@@ -43,7 +43,7 @@ from django.conf import settings
 from django.http import JsonResponse
 import json
 
-LOC_FILE = Path(settings.BASE_DIR) / "data" / "locations.json"
+LOC_FILE = Path(settings.BASE_DIR) / "modelproject" / "data" / "locations.json"
 # => 최종 경로: /app/modelproject/data/locations.json
 
 def get_location_data(request):
