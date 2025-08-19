@@ -22,6 +22,7 @@ CSRF_TRUSTED_ORIGINS: list[str] = [
 
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
+SECURE_SSL_REDIRECT = True  # 모든 HTTP 요청을 HTTPS로 강제
 
 # MySQL 데이터베이스 설정
 DATABASES = {
@@ -32,5 +33,11 @@ DATABASES = {
         "PASSWORD": config("DB_PASSWORD"),  # DB 비밀번호
         "HOST": config("DB_HOST"),  # DB 엔드포인트
         "PORT": 3306,
+        # MYSQL Strict Mode 포함
+        "OPTIONS": { 
+            "init_command": "SET sql_mode='STRICT_TRANS_TABLES'",
+            "charset": "utf8mb4",
+            "use_unicode": True,
+        },
     }
 }
