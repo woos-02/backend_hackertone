@@ -6,7 +6,7 @@ from typing import Literal
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
-
+# ------------------------ User -------------------------
 class User(AbstractUser):
     """
     커스텀 사용자 모델.
@@ -42,7 +42,7 @@ class User(AbstractUser):
         """손님 여부 헬퍼."""
         return self.role == self.Role.CUSTOMER
 
-
+# ------------------------ 자주 가는 지역 -------------------------
 class FavoriteLocation(models.Model):
     """
     사용자가 자주 가는 지역을 저장하는 모델.

@@ -25,7 +25,7 @@ from .serializers import (
 
 User: type[AbstractUser] = get_user_model()
 
-
+# ------------------------ 손님 회원가입 -------------------------
 @extend_schema(
     tags=["Auth"],
     summary="손님 회원가입",
@@ -76,7 +76,7 @@ class RegisterCustomerView(APIView):
         # 비밀번호는 write_only 이므로 응답에 포함되지 않음
         return Response(RegisterCustomerSerializer(user).data, status=status.HTTP_201_CREATED)
 
-
+# ------------------------ 점주 회원가입 -------------------------
 @extend_schema(
     tags=["Auth"],
     summary="점주 회원가입",
@@ -114,6 +114,7 @@ class RegisterOwnerView(APIView):
         user = serializer.save()
         return Response(RegisterOwnerSerializer(user).data, status=status.HTTP_201_CREATED)
 
+# ------------------------ 로그인 -------------------------
 @extend_schema(
     tags=["Auth"],
     summary="로그인 (username 또는 email + password)",
@@ -148,7 +149,7 @@ class LoginView(TokenObtainPairView):
 
     serializer_class = IdentifierTokenObtainPairSerializer
 
-
+# ------------------------ Access 토큰 재발급 -------------------------
 @extend_schema(
     tags=["Auth"],
     summary="Access 토큰 재발급",
@@ -174,7 +175,7 @@ class RefreshView(TokenRefreshView):
 
     pass
 
-
+# ------------------------ 사용자 정보 조회 -------------------------
 @extend_schema(
     tags=["Auth"],
     summary="내 프로필 조회 (로그인 필수))",
@@ -209,7 +210,7 @@ class MeView(APIView):
         serializer = MeSerializer(user)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-
+# ------------------------ 마이페이지 프로필 조회 및 수정 -------------------------
 @extend_schema(
     tags=["User"],
     summary="내 프로필 조회 및 수정 (로그인 필수)",
@@ -233,7 +234,7 @@ class UserProfileView(generics.RetrieveUpdateAPIView):
         """
         return self.request.user
 
-
+# ------------------------ 로그아웃 -------------------------
 @extend_schema(
     tags=["Auth"],
     summary="로그아웃",
@@ -301,7 +302,7 @@ class LogoutView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-
+# ------------------------ 회원 탈퇴 -------------------------
 @extend_schema(
     tags=["User"],
     summary="회원 탈퇴",

@@ -16,7 +16,7 @@ from .models import FavoriteLocation, User
 
 User: type[AbstractUser] = get_user_model()
 
-
+# ------------------------ 자주 가는 지역 -------------------------
 class FavoriteLocationSerializer(serializers.ModelSerializer):
     """
     자주 가는 지역(`FavoriteLocation`) 모델을 위한, 정보를 직렬화하는 시리얼라이저입니다.
@@ -32,7 +32,7 @@ class FavoriteLocationSerializer(serializers.ModelSerializer):
         #     "district": "장안구"
         # }
 
-
+# ------------------------ 회원가입 기반 로직 -------------------------
 class BaseRegisterSerializer(serializers.ModelSerializer):
     """
     사용자 회원 가입의 기본 필드를 정의하는 시리얼라이저입니다.
@@ -93,7 +93,7 @@ class BaseRegisterSerializer(serializers.ModelSerializer):
 
         return user
 
-
+# ------------------------ 손님 회원가입 -------------------------
 class RegisterCustomerSerializer(BaseRegisterSerializer):
     """
     '손님' 회원의 가입을 처리하는 시리얼라이저입니다.
@@ -108,7 +108,7 @@ class RegisterCustomerSerializer(BaseRegisterSerializer):
     class Meta(BaseRegisterSerializer.Meta):
         fields: tuple[Literal['id'], Literal['username'], Literal['email'], Literal['password'], Literal['phone']] = BaseRegisterSerializer.Meta.fields + ("favorite_locations",)
 
-
+# ------------------------ 점주 회원가입 -------------------------
 class RegisterOwnerSerializer(BaseRegisterSerializer):
     """
     '점주' 회원의 가입을 처리하는 시리얼라이저입니다.
@@ -122,7 +122,7 @@ class RegisterOwnerSerializer(BaseRegisterSerializer):
         fields: tuple[Literal['id'], Literal['username'], Literal['email'], Literal['password'], Literal['phone']] = BaseRegisterSerializer.Meta.fields + ("place",)
 
 
-
+# ------------------------ 사용자 프로필 업데이트 -------------------------
 class UserUpdateSerializer(serializers.ModelSerializer):
     """
     사용자 프로필 업데이트를 위한 시리얼라이저입니다.
@@ -169,7 +169,7 @@ class UserUpdateSerializer(serializers.ModelSerializer):
 
         return instance
 
-
+# ------------------------ 사용자 기본 정보 반환 -------------------------
 class UserMiniSerializer(serializers.ModelSerializer):
     """
     JWT 토큰 응답에 포함될 최소한의 사용자 정보를 직렬화하는 시리얼라이저입니다.
@@ -186,7 +186,7 @@ class UserMiniSerializer(serializers.ModelSerializer):
             "role",
         )
 
-
+# ------------------------ 사용자 프로필 조회 -------------------------
 class MeSerializer(serializers.ModelSerializer):
     """
     로그인한 사용자의 상세 프로필 정보를 조회하기 위한 시리얼라이저입니다.
