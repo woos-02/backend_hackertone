@@ -6,7 +6,10 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: web
-    command: ["/app/.venv/bin/gunicorn","modelproject.wsgi:application","-b","0.0.0.0:8000","--workers","3","--timeout","60","--access-logfile","-","--error-logfile","-"]
+    command: ["/app/.venv/bin/gunicorn", "--chdir", "/app", "modelproject.wsgi:application","-b","0.0.0.0:8000","--workers","3","--timeout","60","--access-logfile","-","--error-logfile","-"]
+    environment:
+      DJANGO_SETTINGS_MODULE: modelproject.deploy_settings   # 배포 설정 사용 시
+      PYTHONPATH: /app  
     ports:
       - "8000:8000"
     restart: always

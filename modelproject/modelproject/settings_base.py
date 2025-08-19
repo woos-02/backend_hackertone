@@ -52,10 +52,12 @@ INSTALLED_APPS = [
     "utils",
     "data_api",
     "django_filters",
+    "corsheaders",
 ]
 
 MIDDLEWARE = [
     "debug_toolbar.middleware.DebugToolbarMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -64,6 +66,8 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
+
+CORS_ALLOW_CREDENTIALS = True
 
 ROOT_URLCONF = "modelproject.urls"
 
@@ -154,9 +158,5 @@ STATIC_ROOT = "/static"  # docker-compose: ./static:/app/static
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-try:
-    from .local_settings import *
-except ImportError:
-    pass
 
 AUTH_USER_MODEL = "accounts.User"
