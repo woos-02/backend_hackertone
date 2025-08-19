@@ -1,6 +1,6 @@
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiExample, OpenApiParameter
-from rest_framework import status,generics, permissions, filters
+from rest_framework import status, generics, permissions, filters
 from rest_framework.generics import (DestroyAPIView, ListAPIView,
                                      ListCreateAPIView, RetrieveAPIView)
 from rest_framework.permissions import IsAuthenticated
@@ -350,7 +350,7 @@ class PlaceListView(generics.ListAPIView):
         summary="영수증 번호를 바탕으로 스탬프 등록",
         request=StampListRequestSerializer,
         responses=StampDetailResponseSerializer,
-        examples=[OpenApiExample("요청 예시", value={"receipt_number": "R-20250819-0001"})],
+        examples=[OpenApiExample("요청 예시", value={"receipt": "00000001"})],
     )
 )
 class StampListView(ListCreateAPIView):
@@ -375,24 +375,19 @@ class StampListView(ListCreateAPIView):
         
         return StampListRequestSerializer
     
+    def get_serializer_context(self):
+        ctx = super().get_serializer_context()
+        ctx['coupon_id'] = self.kwargs.get('coupon_id')
+        return ctx
+    
     def create(self, request, *args, **kwargs):
         """
         프론트에서 전달 받은 영수증 번호를 바탕으로, 해당 영수증 번호로 기발급된 스탬프를 체크한 후, 문제가 없으면 스탬프를 등록합니다.
         """
-        coupon_id: int = self.kwargs['coupon_id']
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        instance = serializer.save()
 
-        # request의 data에는 영수증 번호만 들어 있고, 시리얼라이저의 create에서 context를 통해 쿠폰 id와 유저를 등록함
-        # request_serializer = self.get_serializer_class()(data=request.data, context={'request': request, 'coupon_id': coupon_id})
-        # DRF 관용구로 컨텍스트 구성
-        ctx = self.get_serializer_context()   # {'request', 'format', 'view'}
-        ctx.update({'coupon_id': coupon_id})
-        request_serializer = self.get_serializer(data=request.data, context=ctx)
-        # 시리얼라이저의 유효성 검사에서 기발급된 스탬프 확인 및 등록된 영수증 확인
-        request_serializer.is_valid(raise_exception=True)
-        # instance = self.perform_create(request_serializer)
-        # headers = self.get_success_headers(request_serializer.data)
-        # response_serializer = StampDetailResponseSerializer(instance)
-        instance = request_serializer.save()
         response_serializer = StampDetailResponseSerializer(instance, context=self.get_serializer_context())
         headers = self.get_success_headers(response_serializer.data)
         return Response(response_serializer.data, status=status.HTTP_201_CREATED, headers=headers)

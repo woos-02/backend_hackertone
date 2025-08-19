@@ -19,74 +19,76 @@ TIME_FORMAT = "%H:%M"  # 기본 time 출력 포맷
 
 # -------------------------- 스탬프 ----------------------------------
 @extend_schema_serializer(examples=[OpenApiExample("예시", {"receipt_number": "01234567890"})])
-# class StampListRequestSerializer(serializers.ModelSerializer):
-#     """
-#     스탬프를 생성(적립)하는 데에 사용되는 시리얼라이저입니다. 입력받은 영수증 번호를 바탕으로 스탬프를 생성합니다.
-#     """
-
-#     def validate(self, data) -> dict:
-#         """
-#         1. 영수증 번호가 등록되어 있는 영수증인지 확인합니다.
-#         2. 영수증 번호에 해당하는 스탬프가 이미 등록되어 있는지 확인합니다.
-
-#         둘 중 하나라도 만족하지 못하면 ValidationError가 발생합니다.
-#         """
-#         receipt = data.get("receipt")
-#         if not receipt:
-#             raise serializers.ValidationError("DB에 등록되지 않은 영수증 번호입니다.")
-
-#         if hasattr(receipt, "stamp"):
-#             raise serializers.ValidationError("이미 스탬프가 발급된 영수증 번호입니다.")
-
-#         return super().validate(data)
-
-#     def create(self, validated_data) -> Stamp:
-#         """
-#         유효성 검증을 통과한 영수증 번호를 바탕으로 쿠폰 id와 유저를 바탕으로 스탬프 인스턴스를 생성하고 돌려줍니다.
-#         """
-#         receipt = validated_data.pop("receipt")
-#         coupon_id = self.context["coupon_id"]
-#         user = self.context["request"].user
-
-#         return Stamp.objects.create(receipt=receipt, coupon_id=coupon_id, customer=user)
-
-#     class Meta:
-#         model = Stamp
-#         fields = ["receipt"]
 class StampListRequestSerializer(serializers.ModelSerializer):
     """
-    스탬프 생성(적립) 요청에 사용되는 시리얼라이저입니다.
-    `receipt_number` 필드로 영수증 번호를 받아 스탬프를 생성합니다.
+    스탬프를 생성(적립)하는 데에 사용되는 시리얼라이저입니다. 입력받은 영수증 번호를 바탕으로 스탬프를 생성합니다.
     """
-    receipt_number = serializers.CharField(write_only=True)
 
-    class Meta:
-        model = Stamp
-        fields = ["receipt_number"]
+    def validate(self, data) -> dict:
+        """
+        1. 영수증 번호가 등록되어 있는 영수증인지 확인합니다.
+        2. 영수증 번호에 해당하는 스탬프가 이미 등록되어 있는지 확인합니다.
 
-    def validate(self, data):
+        둘 중 하나라도 만족하지 못하면 ValidationError가 발생합니다.
         """
-        1. 영수증 번호가 필요합니다.
-        2. 영수증 번호로 Receipt 객체를 조회하거나 새로 생성합니다.
-        3. 이미 스탬프가 발급된 영수증 번호인지 확인합니다.
-        """
-        num = data.get("receipt_number")
-        if not num:
-            raise serializers.ValidationError({"receipt_number": "영수증 번호가 필요합니다."})
-        # 정책 1: 없는 번호는 자동 생성
-        receipt, _ = Receipt.objects.get_or_create(receipt_number=num)
-        # 정책 2: 이미 사용된 영수증이면 거절
+        receipt = data.get("receipt")
+        if not receipt:
+            raise serializers.ValidationError("DB에 등록되지 않은 영수증 번호입니다.")
+
         if hasattr(receipt, "stamp"):
-            raise serializers.ValidationError({"receipt_number": "이미 스탬프가 발급된 영수증 번호입니다."})
-        data["receipt"] = receipt
-        return data
+            raise serializers.ValidationError("이미 스탬프가 발급된 영수증 번호입니다.")
 
-    def create(self, validated_data):
-        validated_data.pop("receipt_number", None)
+        return super().validate(data)
+
+    def create(self, validated_data) -> Stamp:
+        """
+        유효성 검증을 통과한 영수증 번호를 바탕으로 쿠폰 id와 유저를 바탕으로 스탬프 인스턴스를 생성하고 돌려줍니다.
+        """
         receipt = validated_data.pop("receipt")
         coupon_id = self.context["coupon_id"]
         user = self.context["request"].user
+
         return Stamp.objects.create(receipt=receipt, coupon_id=coupon_id, customer=user)
+
+    class Meta:
+        model = Stamp
+        fields = ["receipt"]
+
+# --------------------- 영수증 번호 입력 + 스탬프 발급 -> 없는 번호 등록 시 스탬프가 찍힐 가능성 우려 및 제거 -----------------
+# class StampListRequestSerializer(serializers.ModelSerializer):
+#     """
+#     스탬프 생성(적립) 요청에 사용되는 시리얼라이저입니다.
+#     `receipt_number` 필드로 영수증 번호를 받아 스탬프를 생성합니다.
+#     """
+#     receipt_number = serializers.CharField(write_only=True)
+
+#     class Meta:
+#         model = Stamp
+#         fields = ["receipt_number"]
+
+#     def validate(self, data):
+#         """
+#         1. 영수증 번호가 필요합니다.
+#         2. 영수증 번호로 Receipt 객체를 조회하거나 새로 생성합니다.
+#         3. 이미 스탬프가 발급된 영수증 번호인지 확인합니다.
+#         """
+#         num = data.get("receipt_number")
+#         if not num:
+#             raise serializers.ValidationError({"receipt_number": "영수증 번호가 필요합니다."})
+#         # 정책 1: 없는 번호는 자동 생성
+#         receipt, _ = Receipt.objects.get_or_create(receipt_number=num)
+#         # 정책 2: 이미 사용된 영수증이면 거절
+#         if hasattr(receipt, "stamp"):
+#             raise serializers.ValidationError({"receipt_number": "이미 스탬프가 발급된 영수증 번호입니다."})
+#         data["receipt"] = receipt
+#         return data
+
+#     def create(self, validated_data):
+#         validated_data.pop("receipt_number", None)
+#         receipt = validated_data.pop("receipt")
+#         coupon_id = self.context["coupon_id"]
+#         user = self.context["request"].user
+#         return Stamp.objects.create(receipt=receipt, coupon_id=coupon_id, customer=user)
 
 
 @extend_schema_serializer(
