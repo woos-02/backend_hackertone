@@ -16,7 +16,7 @@ class User(AbstractUser):
     class Role(models.TextChoices):
         """
         사용자의 역할을 정의하는 클래스입니다.
-        'CUSTOMER'와 'OWNER' 두 가지 역할을 제공합니다.
+        'CUSTOMER: 손님'와 'OWNER: 점주' 두 가지 역할을 제공합니다.
         'models.CharField'의 'choices' 옵션과 함께 사용되어,
         데이터베이스에 저장될 값과 사용자에게 보여줄 값을 구분합니다.
         """
@@ -28,7 +28,7 @@ class User(AbstractUser):
         max_length=20,
         choices=Role.choices,
         default=Role.CUSTOMER,
-        help_text="사용자 역할",
+        help_text="사용자 역할(CUSTOMER/OWNER)",
     )
     phone: str | None = models.CharField(
         max_length=20, null=True, blank=True, help_text="연락처(선택)"
@@ -45,7 +45,7 @@ class User(AbstractUser):
 
 class FavoriteLocation(models.Model):
     """
-    사용자가 즐겨찾는 지역을 저장하는 모델.
+    사용자가 자주 가는 지역을 저장하는 모델.
     한 명의 사용자는 여러 개의 FavoriteLocation을 가질 수 있습니다.
     """
 
