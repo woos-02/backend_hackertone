@@ -238,24 +238,54 @@ class FavoriteCouponDetailView(DestroyAPIView):
     lookup_url_kwarg = 'favorite_id'
 
 
-# ----------------------------- 쿠폰 템플릿 -------------------------------
+# ----------------------------- 쿠폰 템플릿 (통합) -------------------------------
+from rest_framework import generics, permissions
+from rest_framework.exceptions import PermissionDenied, ValidationError
+from drf_spectacular.utils import extend_schema, extend_schema_view
+
 @extend_schema_view(
     get=extend_schema(
         tags=["Templates"],
-        description="현재 게시중('is_on')으로 설정된 쿠폰 템플릿들의 목록을 가져옵니다.",
         summary="현재 게시중인 쿠폰 템플릿 목록 조회",
+        description="현재 게시중('is_on')으로 설정된 쿠폰 템플릿들의 목록을 가져옵니다.",
         responses=CouponTemplateListSerializer,
-    )
+        auth=None,
+    ),
+    post=extend_schema(
+        tags=["Templates"],
+        summary="점주: 새로운 쿠폰 템플릿 등록",
+        description="(OWNER 전용) 로그인 필요. 본인 place에 템플릿을 등록합니다.",
+        request=CouponTemplateCreateSerializer,
+        responses={201: CouponTemplateCreateSerializer},
+    ),
 )
-class CouponTemplateListView(ListAPIView):
+class CouponTemplateListView(generics.ListCreateAPIView):
     """
-    쿠폰 템플릿들을 조회하는 뷰입니다.
+    쿠폰 템플릿 목록 조회(GET) + 템플릿 생성(POST, 점주 전용)
     """
-    serializer_class = CouponTemplateListSerializer
-    authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated]
-
     queryset = CouponTemplate.objects.filter(is_on=True)
+    authentication_classes = [JWTAuthentication]
+
+    def get_serializer_class(self):
+        if self.request.method == "GET":
+            return CouponTemplateListSerializer
+        return CouponTemplateCreateSerializer
+
+    def get_permissions(self):
+        if self.request.method == "GET":
+            return [permissions.AllowAny()]
+        return [permissions.IsAuthenticated()]
+
+    def perform_create(self, serializer):
+        user = self.request.user
+        # 점주 검증
+        if not getattr(user, "is_owner", lambda: False)():
+            raise PermissionDenied("점주만 쿠폰 템플릿을 등록할 수 있습니다.")
+        # 가게 보유 검증
+        place = getattr(user, "place", None)
+        if place is None:
+            raise ValidationError({"detail": "등록된 가게가 없습니다. 먼저 가게를 등록해주세요."})
+        serializer.save(place=place)
 
 @extend_schema_view(
     get=extend_schema(
@@ -276,28 +306,6 @@ class CouponTemplateDetailView(RetrieveAPIView):
     queryset = CouponTemplate.objects.filter(is_on=True)
     lookup_url_kwarg = 'coupon_template_id'
 
-@extend_schema(
-    tags=["Owner"],
-    summary="점주: 새로운 쿠폰 템플릿 등록",
-    description="(OWNER 전용) 로그인 필요. 본인 `place`에 템플릿을 등록합니다.",
-    request=CouponTemplateCreateSerializer,
-    responses={201: CouponTemplateCreateSerializer},
-)
-class CouponTemplateCreateView(generics.CreateAPIView):
-    """
-    점주가 본인의 가게에 새로운 쿠폰 템플릿을 등록하는 API 뷰입니다.
-    """
-    permission_classes = [permissions.IsAuthenticated]
-    serializer_class = CouponTemplateCreateSerializer
-
-    def perform_create(self, serializer):
-        user = self.request.user
-        if not getattr(user, "is_owner", lambda: False)():
-            raise PermissionDenied("점주만 쿠폰 템플릿을 등록할 수 있습니다.")
-        place = getattr(user, "place", None)
-        if place is None:
-            raise ValidationError({"detail": "등록된 가게가 없습니다. 먼저 가게를 등록해주세요."})
-        return serializer.save(place=place)
     
 @extend_schema(
     tags=["Public"],
@@ -411,3 +419,5 @@ class StampDetailView(RetrieveAPIView):
     permission_classes = [IsAuthenticated]
     queryset = Stamp.objects.all()
     serializer_class = StampDetailResponseSerializer
+
+    

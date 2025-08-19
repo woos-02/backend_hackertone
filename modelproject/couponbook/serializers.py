@@ -482,7 +482,7 @@ class CouponListResponseSerializer(serializers.ModelSerializer):
         valid_until = obj.original_template.valid_until
         return bool(valid_until and valid_until< now())
 
-    def get_days_remaining(self, obj: Coupon) -> int:
+    def get_days_remaining(self, obj: Coupon) -> int | None:
         """
         해당 쿠폰의 유효기간이 며칠 남아 있는지를 의미합니다.
         """
