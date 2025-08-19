@@ -42,17 +42,20 @@ class CouponTemplate(models.Model):
     """
     점주가 등록해서 게시중인 쿠폰 템플릿입니다.
     """
-    valid_until = models.DateTimeField(default=None, help_text="쿠폰의 유효기간입니다.")
+    valid_until = models.DateTimeField(null=True, blank=True, help_text="쿠폰의 유효기간입니다.")
     first_n_persons = models.PositiveIntegerField(default=0, help_text="선착순 몇명까지 쿠폰이 발급한지를 의미합니다.")
     is_on = models.BooleanField(default=True, help_text="게시 중/비공개 여부를 불리언으로 나타냅니다.")
     # Todo: views 시리얼라이저 필드로 이동
     views = models.PositiveIntegerField(default=0, help_text="조회수를 의미합니다.")
+    # 쿠폰 템플릿이 어느 가게에 속하는지 명시적으로 연결합니다.
     created_at = models.DateTimeField(auto_now_add=True, help_text="점주가 쿠폰 템플릿을 등록한 날짜와 시간입니다.")
     place = models.ForeignKey("couponbook.Place",
                               related_name='coupon_templates',
                               on_delete=models.CASCADE,
                               help_text="해당 쿠폰과 연관된 매장 id입니다.",
-                              null=True)
+                              null=False,
+                              blank=False,
+                              )
 
 class RewardsInfo(models.Model):
     """
@@ -99,3 +102,5 @@ class Place(models.Model):
     # todo: 영업하는 요일 필드 추가
     last_order = models.TimeField(help_text="라스트오더 시간입니다.")
     tel = models.CharField(max_length=20, help_text="가게 전화번호입니다.")
+    # 점주와 가게를 1:1로 연결
+    owner = models.OneToOneField("accounts.User", on_delete=models.CASCADE, related_name="place", null=True, blank=True, help_text="이 매장의 점주 사용자입니다.")

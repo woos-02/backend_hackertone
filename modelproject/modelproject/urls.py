@@ -23,10 +23,7 @@ from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("api/accounts/", include("accounts.urls")),
-    # OpenAPI 스키마 & UI
-    path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
-    path("api/docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="docs"),
+
     # API 문서를 위한 엔드포인트들
     path("schema/", SpectacularAPIView.as_view(), name="schema"),
     path(

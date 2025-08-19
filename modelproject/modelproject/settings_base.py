@@ -47,10 +47,11 @@ INSTALLED_APPS = [
     "drf_spectacular",  # API 문서화
     "rest_framework_simplejwt",
     'rest_framework_simplejwt.token_blacklist',
-    "accounts",
-    "couponbook",
+    "accounts.apps.AccountsConfig",
+    'couponbook.apps.CouponbookConfig',
     "utils",
     "data_api",
+    "django_filters",
 ]
 
 MIDDLEWARE = [

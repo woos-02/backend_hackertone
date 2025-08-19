@@ -31,3 +31,7 @@ RUN uv sync --no-dev --extra prod --frozen
 
 # 앱 소스 복사
 COPY . .
+
+WORKDIR /app/modelproject
+
+CMD ["gunicorn", "--bind", "0.0.0.0:8000", "modelproject.wsgi:application"]

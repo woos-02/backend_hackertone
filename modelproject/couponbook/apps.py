@@ -5,5 +5,5 @@ class CouponbookConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
     name = 'couponbook'
 
-    def ready(self):
+    def ready(self) -> None:
         from . import signals

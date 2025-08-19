@@ -9,30 +9,33 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework_simplejwt.token_blacklist.models import (
-    BlacklistedToken,
-    OutstandingToken,
-)
+from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken,OutstandingToken
+
 from rest_framework_simplejwt.tokens import RefreshToken, TokenError
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from .auth_utils import IdentifierTokenObtainPairSerializer
-from .models import FavoriteLocation
 from .serializers import (
     MeSerializer,
-    RegisterSerializer,
+    RegisterCustomerSerializer,
+    RegisterOwnerSerializer,
     UserMiniSerializer,
     UserUpdateSerializer,
 )
 
 User: type[AbstractUser] = get_user_model()
 
-
+# ------------------------ 손님 회원가입 -------------------------
 @extend_schema(
     tags=["Auth"],
     summary="손님 회원가입",
-    request=RegisterSerializer,
-    responses={201: RegisterSerializer},
+    description="""
+    새로운 **손님(CUSTOMER)** 사용자를 생성하는 엔드포인트입니다.
+    `username`, `email`, `password`, `phone` 및 **최소 1개 이상의 `favorite_locations`(자주 가는 지역)** 정보를 요청 본문에 담아 보냅니다.
+    """,
+    request=RegisterCustomerSerializer,
+    responses={201: RegisterCustomerSerializer},
+    auth=None,
     examples=[
         OpenApiExample(
             "손님 회원가입 예시",
@@ -59,27 +62,34 @@ class RegisterCustomerView(APIView):
 
     # DRF 브라우저에서 JSON/폼 모두 받을 수 있도록 파서 명시
     parser_classes: tuple[type[JSONParser], type[FormParser], type[MultiPartParser]] = (JSONParser, FormParser, MultiPartParser)
+    authentication_classes: tuple = ()
 
     def post(self, request: Request) -> Response:
         """
         새로운 손님 사용자를 생성합니다.
-        `RegisterSerializer`를 사용해 요청 데이터를 검증하고, `CUSTOMER` 역할을 할당합니다.
+        `RegisterCustomerSerializer`를 사용해 요청 데이터를 검증하고, `CUSTOMER` 역할을 할당합니다.
         """
-        serializer = RegisterSerializer(
+        serializer = RegisterCustomerSerializer(
             data=request.data, context={"role": User.Role.CUSTOMER}
         )
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
 
         # 비밀번호는 write_only 이므로 응답에 포함되지 않음
-        return Response(RegisterSerializer(user).data, status=status.HTTP_201_CREATED)
+        return Response(RegisterCustomerSerializer(user).data, status=status.HTTP_201_CREATED)
 
-
+# ------------------------ 점주 회원가입 -------------------------
 @extend_schema(
     tags=["Auth"],
     summary="점주 회원가입",
-    request=RegisterSerializer,
-    responses={201: RegisterSerializer},
+    description=
+    """
+    새로운 **점주(OWNER)** 사용자를 생성하는 엔드포인트입니다.
+    `username`, `email`, `password`, `phone` 및 **가게 정보**를 요청 본문에 담아 보냅니다.
+    """,
+    request=RegisterOwnerSerializer,
+    responses={201: RegisterOwnerSerializer},
+    auth=None,
     # 점주 회원가입 예시 -> Customer와 동일
 )
 class RegisterOwnerView(APIView):
@@ -87,7 +97,6 @@ class RegisterOwnerView(APIView):
     점주(OWNER) 역할로 회원가입을 처리하는 API 뷰입니다.
 
     `RegisterCustomerView`와 동일한 방식으로 작동하며, 사용자 역할만 '점주'로 설정됩니다.
-    `favorite_locations` 필드는 점주에게 필요하지 않으므로 무시됩니다.
     """
 
     parser_classes: tuple[type[JSONParser], type[FormParser], type[MultiPartParser]] = (
@@ -95,27 +104,30 @@ class RegisterOwnerView(APIView):
         FormParser,
         MultiPartParser,
     )
+    authentication_classes: tuple = ()
 
     def post(self, request: Request) -> Response:
         """
         새로운 점주 사용자를 생성합니다.
-        `RegisterSerializer`를 사용해 요청 데이터를 검증하고, `OWNER` 역할을 할당합니다.
+        `RegisterOwnerSerializer`를 사용해 요청 데이터를 검증하고, `OWNER` 역할을 할당합니다.
         """
-        serializer = RegisterSerializer(
+        serializer = RegisterOwnerSerializer(
             data=request.data, context={"role": User.Role.OWNER}
         )
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
-        return Response(RegisterSerializer(user).data, status=status.HTTP_201_CREATED)
+        return Response(RegisterOwnerSerializer(user).data, status=status.HTTP_201_CREATED)
 
-
+# ------------------------ 로그인 -------------------------
 @extend_schema(
     tags=["Auth"],
     summary="로그인 (username 또는 email + password)",
-    description=(
-        "identifier 에는 **username 또는 email** 중 하나를 넣습니다. "
-        "혹은 username/password 쌍을 그대로 보내도 됩니다."
-    ),
+    description="""
+    `username` 또는 `email`과 `password`를 사용하여 로그인하고 JWT 토큰을 발급받습니다.
+    요청 본문의 필드 이름은 `identifier` 또는 `username`입니다.
+    - **요청 예시**: `{"identifier": "alice", "password": "..."}` 또는 `{"username": "alice", "password": "..."}`
+    - **응답**: `access` 및 `refresh` 토큰
+    """,
     examples=[
         OpenApiExample(
             "identifier=username",
@@ -129,6 +141,7 @@ class RegisterOwnerView(APIView):
             "username 직접", value={"username": "alice", "password": "P@ssw0rd!"}
         ),
     ],
+    auth=None,
 )
 class LoginView(TokenObtainPairView):
     """
@@ -138,11 +151,25 @@ class LoginView(TokenObtainPairView):
     성공 시, 클라이언트는 `access`와 `refresh` 토큰을 응답으로 받게 됩니다.
     `access` 토큰은 보호된 API에 접근할 때 사용되며, `refresh` 토큰은 `access` 토큰이 만료되었을 때 재발급받는 데 사용됩니다.
     """
-
+    authentication_classes: tuple = ()
     serializer_class = IdentifierTokenObtainPairSerializer
 
-
-# Refresh는 기본 뷰 재사용
+# ------------------------ Access 토큰 재발급 -------------------------
+@extend_schema(
+    tags=["Auth"],
+    summary="Access 토큰 재발급",
+    description="""
+    만료된 Access 토큰 대신 Refresh 토큰을 사용하여 새로운 Access 토큰을 발급받습니다.
+    """,
+    request={
+        "application/json": {"example": {"refresh": "your_refresh_token_here"}}
+    },
+    responses={
+        200: {"description": "새로운 Access 토큰 발급", "content": {"application/json": {"examples": {"success": {"value": {"access": "new_access_token_here", "refresh": "your_refresh_token_here"}}}}}},
+        401: {"description": "유효하지 않은 토큰"},
+    },
+    auth=None,
+)
 class RefreshView(TokenRefreshView):
     """
     JWT Access 토큰 재발급을 처리하는 API 뷰입니다.
@@ -151,16 +178,17 @@ class RefreshView(TokenRefreshView):
     요청 본문(JSON):
         - `refresh`: 기존에 발급받은 Refresh 토큰
     """
-
+    authentication_classes: tuple = ()
     pass
 
-
+# ------------------------ 사용자 정보 조회 -------------------------
 @extend_schema(
     tags=["Auth"],
-    summary="내 프로필 조회 (JWT 보호)",
+    summary="내 프로필 조회 (로그인 필수))",
     description="""
     JWT Access 토큰을 사용하여 현재 로그인된 사용자의 기본 프로필 정보를 반환합니다.
-    - 헤더: `Authorization: Bearer <access_token>`
+    - 인증 방식 : `Authorization: Bearer <access_token>`
+    - 응답 : 사용자가 손님이면 `favorite_locations`가, 점주면 `place` 정보가 포함됩니다.
     """,
     responses={
         200: MeSerializer,
@@ -188,10 +216,10 @@ class MeView(APIView):
         serializer = MeSerializer(user)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-
+# ------------------------ 마이페이지 프로필 조회 및 수정 -------------------------
 @extend_schema(
     tags=["User"],
-    summary="내 프로필 조회 및 수정",
+    summary="내 프로필 조회 및 수정 (로그인 필수)",
     description="JWT Access 토큰을 사용하여 현재 로그인된 사용자의 프로필을 조회하고 수정합니다.",
 )
 class UserProfileView(generics.RetrieveUpdateAPIView):
@@ -212,16 +240,20 @@ class UserProfileView(generics.RetrieveUpdateAPIView):
         """
         return self.request.user
 
-
+# ------------------------ 로그아웃 -------------------------
 @extend_schema(
     tags=["Auth"],
     summary="로그아웃",
+    description="""
+    사용자의 **Refresh 토큰을 블랙리스트에 추가**하여 무효화합니다.
+    해당 토큰으로는 더 이상 Access 토큰을 재발급받을 수 없게 됩니다.
+    """,
     request={
         "application/json": {"example": {"refresh_token": "your_refresh_token_here"}}
     },
     responses={
         200: {"description": "로그아웃 성공"},
-        400: {"description": "유효하지 않은 토큰"},
+        400: {"description": "유효하지 않은 토큰 또는 필수 필드 누락"},
     },
 )
 class LogoutView(APIView):
@@ -251,12 +283,7 @@ class LogoutView(APIView):
                 )
             token = RefreshToken(refresh_token)
 
-            # OutstandingToken 테이블에서 토큰을 찾아 BlacklistedToken에 추가
-            outstanding_token = OutstandingToken.objects.filter(token=token).first()
-
-            # 토큰이 존재하면 BlacklistedToken에 추가합니다.
-            if outstanding_token:
-                BlacklistedToken.objects.create(token=outstanding_token)
+            token.blacklist()
 
             return Response(
                 {"detail": "로그아웃되었습니다."}, status=status.HTTP_200_OK
@@ -281,7 +308,7 @@ class LogoutView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-
+# ------------------------ 회원 탈퇴 -------------------------
 @extend_schema(
     tags=["User"],
     summary="회원 탈퇴",

@@ -14,5 +14,5 @@ class AccountsConfig(AppConfig):
     name = 'accounts'
 
     def ready(self):
-        # 시그널 핸들러를 등록
-        import accounts.signals
+        # 시그널 핸들러를 등록 
+        from . import signals
