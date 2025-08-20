@@ -285,6 +285,7 @@ class CouponTemplateListSerializer(serializers.ModelSerializer):
                 "valid_until": "2025-11-11 23:59",
                 "first_n_persons": 50,
                 "created_at": "2025-08-18 21:30",
+                "already_owned": True
             },
         )
     ]
@@ -300,6 +301,7 @@ class CouponTemplateDetailSerializer(serializers.ModelSerializer):
     valid_until = serializers.DateTimeField(DATETIME_FORMAT, allow_null=True, required=False)
     place = PlaceDetailResponseSerializer()
     created_at = serializers.DateTimeField(DATETIME_FORMAT)
+    already_owned = serializers.SerializerMethodField()
 
     def get_max_stamps(self, obj: CouponTemplate) -> int:
         """
@@ -314,6 +316,15 @@ class CouponTemplateDetailSerializer(serializers.ModelSerializer):
         """
         coupons = obj.coupons
         return max(0, obj.first_n_persons - coupons.count()) # current_n_remaining 이 음수가 될 수 있어 0으로 바닥 고정
+    
+    def get_already_owned(self, obj: CouponTemplate) -> bool:
+        """
+        이미 해당 쿠폰 템플릿으로 등록한 쿠폰이 있는지의 여부입니다.
+        """
+        user = self.context["request"].user
+        couponbook = CouponBook.objects.get(user=user)
+        own_coupons = Coupon.objects.filter(couponbook=couponbook)
+        return any(map(lambda coupon: coupon.original_template == obj, own_coupons))
 
     class Meta:
         model = CouponTemplate
