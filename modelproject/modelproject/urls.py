@@ -14,9 +14,25 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+
+from data_api import views as data_views
+from debug_toolbar.toolbar import debug_toolbar_urls
 from django.contrib import admin
-from django.urls import path
+from django.urls import include, path
+from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
-]
+    path("admin/", admin.site.urls),
+
+    # API 문서를 위한 엔드포인트들
+    path("schema/", SpectacularAPIView.as_view(), name="schema"),
+    path(
+        "schema/swagger/",
+        SpectacularSwaggerView.as_view(url_name="schema"),
+        name="schema-swagger",
+    ),
+    path("accounts/", include("accounts.urls")),
+    path("couponbook/", include("couponbook.urls"), name="couponbook"),
+    # 위치 정보 API 엔드포인트 : JSON 형식으로 전국 시/도, 시/군/구, 읍/면/동 데이터 반환
+    path("api/", include("data_api.urls")),
+] + debug_toolbar_urls()  # 디버깅 툴바

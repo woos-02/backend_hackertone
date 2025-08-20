@@ -1,0 +1,11 @@
+-r requirements.txt
+
+gunicorn
+python-decouple
+cryptography
+mysqlclient
+pymysql
+# 필요하다면 django-cors-headers, whitenoise 등도 여기에
+
+# 배포 서버에만 필요한 패키지를 추가로 기록
+# ex) gunicorn, python-decouple, cryptography, mysqlclient 등
