@@ -541,6 +541,7 @@ class CouponListResponseSerializer(serializers.ModelSerializer):
                     }
                 ],
                 "is_favorite": True,
+                "favorite_id": 1,
                 "is_completed": False,
                 "couponbook": 1,
             },
