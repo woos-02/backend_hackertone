@@ -384,13 +384,14 @@ class StampListView(ListCreateAPIView):
     
     def create(self, request, *args, **kwargs):
         """
-        프론트에서 전달 받은 영수증 번호를 바탕으로, 해당 영수증 번호로 기발급된 스탬프를 체크한 후, 문제가 없으면 스탬프를 등록합니다.
+        프론트에서 전달 받은 영수증 번호를 바탕으로, 해당 영수증 번호로 기발급된 스탬프를 체크한 후, 문제가 없으면 스탬프를 등록하고 해당 쿠폰의 전체 스탬프 목록을 돌려줍니다.
         """
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        instance = serializer.save()
+        serializer.save()
+        queryset = self.get_queryset()
 
-        response_serializer = StampDetailResponseSerializer(instance, context=self.get_serializer_context())
+        response_serializer = StampListResponseSerializer(queryset, many=True, context=self.get_serializer_context())
         headers = self.get_success_headers(response_serializer.data)
         return Response(response_serializer.data, status=status.HTTP_201_CREATED, headers=headers)
     

@@ -1,11 +1,8 @@
 from django.shortcuts import get_object_or_404
 from django.utils.timezone import now
 from drf_spectacular.types import OpenApiTypes
-from drf_spectacular.utils import (
-    OpenApiExample,
-    extend_schema_field,
-    extend_schema_serializer,
-)
+from drf_spectacular.utils import (OpenApiExample, extend_schema_field,
+                                   extend_schema_serializer)
 from rest_framework import serializers
 from rest_framework.reverse import reverse
 
@@ -505,13 +502,23 @@ class CouponListResponseSerializer(serializers.ModelSerializer):
             {
                 "id": 1,
                 "saved_at": "2025-08-18 21:35",
-                "couponbook": 1,
+                "place": {
+                    "id": 1,
+                    "name": "매머드 커피",
+                    "address": "서울 동대문구 이문동 264-223",
+                    "image_url": "http://localhost:8000",
+                    "opens_at": "08:00",
+                    "closes_at": "21:00",
+                    "last_order": "20:30",
+                    "tel": "0507-1361-0962",
+                },
                 "stamps": [
                     {
                         "id": 1,
                         "stamp_url": "http://localhost:8000/couponbook/stamps/1"
                     }
-                ]
+                ],
+                "couponbook": 1,
             },
         )
     ]
@@ -522,11 +529,18 @@ class CouponDetailResponseSerializer(serializers.ModelSerializer):
     """
 
     saved_at = serializers.DateTimeField(DATETIME_FORMAT)
+    place = serializers.SerializerMethodField()
     stamps = StampListResponseSerializer(many=True)
 
     class Meta:
         model = Coupon
         exclude = ["original_template"]
+
+    def get_place(self, obj: Coupon) -> PlaceDetailResponseSerializer:
+        original_template = obj.original_template
+        place = original_template.place
+        serializer = PlaceDetailResponseSerializer(place)
+        return serializer.data
 
 
 @extend_schema_serializer(
@@ -583,18 +597,28 @@ class FavoriteCouponListRequestSerializer(serializers.ModelSerializer):
             "즐겨찾기 목록 응답 예시",
             {
                 "id": 1,
-                "added_at": "2025-08-18 21:40",
                 "coupon": {
-                    "id": 1,
+                   "id": 1,
                     "saved_at": "2025-08-18 21:35",
-                    "couponbook": 1,
+                    "place": {
+                        "id": 1,
+                        "name": "매머드 커피",
+                        "address": "서울 동대문구 이문동 264-223",
+                        "image_url": "http://localhost:8000",
+                        "opens_at": "08:00",
+                        "closes_at": "21:00",
+                        "last_order": "20:30",
+                        "tel": "0507-1361-0962",
+                    },
                     "stamps": [
                         {
                             "id": 1,
                             "stamp_url": "http://localhost:8000/couponbook/stamps/1"
                         }
-                    ]
-                }
+                    ],
+                    "couponbook": 1,
+                },
+                "added_at": "2025-08-18 21:40",
             },
         )
     ]
