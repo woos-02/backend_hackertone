@@ -1,11 +1,12 @@
 from datetime import datetime
-from json import dumps
+from json import dumps, loads
 
 from accounts.models import User
 from couponbook.models import *
 from decouple import config
 from google import genai
 from google.genai import types
+from pydantic import BaseModel
 
 from .example import get_example_statistics
 
@@ -103,6 +104,9 @@ class UserStatistics:
             history.append(coupon_dict)
         return history
 
+class ResponseStructure(BaseModel):
+    id: int
+
 class AICurator:
     """
     제미나이를 이용하여 쿠폰 큐레이션 기능을 제공하는 큐레이터 객체입니다.
@@ -136,11 +140,11 @@ class AICurator:
         INSTRUCTION = "너는 지금부터 개인의 취향을 분석하고, 이를 토대로 주변의 음식점을 추천해주는 비서야."
         EXAMPLE_HISTORY: dict = get_example_statistics().make_history()
         example_history_json: str = dumps(EXAMPLE_HISTORY, ensure_ascii=False)
-        EXAMPLE_PROMPT: str = self.generate_example(example_history_json, "1")
+        EXAMPLE_PROMPT: str = self.generate_example(example_history_json, "{id: 1}")
 
         statistics_history_json: str = dumps(statistics.make_history(), ensure_ascii=False)
         input_prompt: str = self.generate_example(statistics_history_json)
-        config = types.GenerateContentConfig(system_instruction=INSTRUCTION)
+        config = types.GenerateContentConfig(system_instruction=INSTRUCTION, response_mime_type='application/json', response_schema=ResponseStructure)
         contents = [
             types.Content(
                 role='user', parts=[
@@ -170,4 +174,5 @@ class AICurator:
             self.initialize_client()
         curation_contents = self.generate_curation_contents(statistics)
         response = self.generate_response(curation_contents)
-        return int(response.text)
+        coupon_id = loads(response.text)['id']
+        return coupon_id

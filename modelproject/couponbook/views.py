@@ -1,6 +1,11 @@
 from django.shortcuts import get_object_or_404
-from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiExample, OpenApiParameter
-from rest_framework import status, generics, permissions, filters
+from django_filters.rest_framework import DjangoFilterBackend
+from drf_spectacular.utils import (OpenApiExample, OpenApiParameter,
+                                   extend_schema, extend_schema_view)
+from rest_framework import filters, generics, permissions
+from rest_framework import serializers as drf_serializers
+from rest_framework import status
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.generics import (DestroyAPIView, ListAPIView,
                                      ListCreateAPIView, RetrieveAPIView)
 from rest_framework.permissions import IsAuthenticated
@@ -9,13 +14,9 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 
 from .curation.utils import AICurator, UserStatistics
 from .models import *
-from .serializers import *
-
 from .models import CouponTemplate, Place
+from .serializers import *
 from .serializers import CouponTemplateCreateSerializer, PlaceSerializer
-from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework.exceptions import PermissionDenied, ValidationError
-from rest_framework import serializers as drf_serializers
 
 # Create your views here.
 
@@ -238,10 +239,11 @@ class FavoriteCouponDetailView(DestroyAPIView):
     lookup_url_kwarg = 'favorite_id'
 
 
+from drf_spectacular.utils import extend_schema, extend_schema_view
 # ----------------------------- 쿠폰 템플릿 (통합) -------------------------------
 from rest_framework import generics, permissions
 from rest_framework.exceptions import PermissionDenied, ValidationError
-from drf_spectacular.utils import extend_schema, extend_schema_view
+
 
 @extend_schema_view(
     get=extend_schema(
@@ -414,5 +416,4 @@ class StampDetailView(RetrieveAPIView):
     permission_classes = [IsAuthenticated]
     queryset = Stamp.objects.all()
     serializer_class = StampDetailResponseSerializer
-
-    
+    lookup_url_kwarg = 'stamp_id'
