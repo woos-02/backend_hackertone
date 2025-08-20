@@ -1,11 +1,8 @@
 from django.shortcuts import get_object_or_404
 from django.utils.timezone import now
 from drf_spectacular.types import OpenApiTypes
-from drf_spectacular.utils import (
-    OpenApiExample,
-    extend_schema_field,
-    extend_schema_serializer,
-)
+from drf_spectacular.utils import (OpenApiExample, extend_schema_field,
+                                   extend_schema_serializer)
 from rest_framework import serializers
 from rest_framework.reverse import reverse
 
@@ -415,6 +412,8 @@ class CouponListRequestSerializer(serializers.ModelSerializer):
                     "last_order": "20:30",
                     "tel": "0507-1361-0962",
                 },
+                "max_stamps": 10,
+                "current_stamps": 5,
                 "is_favorite": True,
                 "is_completed": False,
                 "is_expired": False,
@@ -432,6 +431,8 @@ class CouponListResponseSerializer(serializers.ModelSerializer):
 
     coupon_url = serializers.SerializerMethodField()
     place = serializers.SerializerMethodField()
+    max_stamps = serializers.SerializerMethodField()
+    current_stamps = serializers.SerializerMethodField()
     is_favorite = serializers.SerializerMethodField()
     is_completed = serializers.SerializerMethodField()
     is_expired = serializers.SerializerMethodField()
@@ -455,6 +456,22 @@ class CouponListResponseSerializer(serializers.ModelSerializer):
         original_template = obj.original_template
         place = original_template.place
         return PlaceDetailResponseSerializer(place).data
+    
+    def get_max_stamps(self, obj: Coupon) -> int:
+        """
+        해당 쿠폰을 완성하는 데에 필요한 스탬프 개수입니다.
+        """
+        original_template: CouponTemplate = obj.original_template
+        reward_info: RewardsInfo = original_template.reward_info
+        max_stamps: int = reward_info.amount
+        return max_stamps
+    
+    def get_current_stamps(self, obj: Coupon) -> int:
+        """
+        해당 쿠폰에 현재 적립되어 있는 스탬프 개수입니다.
+        """
+        stamps = Stamp.objects.filter(coupon=obj)
+        return stamps.count()
 
     def get_is_favorite(self, obj: Coupon) -> bool:
         """
@@ -505,13 +522,27 @@ class CouponListResponseSerializer(serializers.ModelSerializer):
             {
                 "id": 1,
                 "saved_at": "2025-08-18 21:35",
-                "couponbook": 1,
+                "place": {
+                    "id": 1,
+                    "name": "매머드 커피",
+                    "address": "서울 동대문구 이문동 264-223",
+                    "image_url": "http://localhost:8000",
+                    "opens_at": "08:00",
+                    "closes_at": "21:00",
+                    "last_order": "20:30",
+                    "tel": "0507-1361-0962",
+                },
+                "max_stamps": 10,
+                "current_stamps": 5,
                 "stamps": [
                     {
                         "id": 1,
                         "stamp_url": "http://localhost:8000/couponbook/stamps/1"
                     }
-                ]
+                ],
+                "is_favorite": True,
+                "is_completed": False,
+                "couponbook": 1,
             },
         )
     ]
@@ -522,11 +553,59 @@ class CouponDetailResponseSerializer(serializers.ModelSerializer):
     """
 
     saved_at = serializers.DateTimeField(DATETIME_FORMAT)
+    place = serializers.SerializerMethodField()
+    max_stamps = serializers.SerializerMethodField()
+    current_stamps = serializers.SerializerMethodField()
     stamps = StampListResponseSerializer(many=True)
+    is_favorite = serializers.SerializerMethodField()
+    is_completed = serializers.SerializerMethodField()
 
     class Meta:
         model = Coupon
         exclude = ["original_template"]
+
+    def get_place(self, obj: Coupon) -> PlaceDetailResponseSerializer:
+        original_template = obj.original_template
+        place = original_template.place
+        serializer = PlaceDetailResponseSerializer(place)
+        return serializer.data
+    
+    def get_max_stamps(self, obj: Coupon) -> int:
+        """
+        해당 쿠폰을 완성하는 데에 필요한 스탬프 개수입니다.
+        """
+        original_template: CouponTemplate = obj.original_template
+        reward_info: RewardsInfo = original_template.reward_info
+        max_stamps: int = reward_info.amount
+        return max_stamps
+    
+    def get_current_stamps(self, obj: Coupon) -> int:
+        """
+        해당 쿠폰에 현재 적립되어 있는 스탬프 개수입니다.
+        """
+        stamps = Stamp.objects.filter(coupon=obj)
+        return stamps.count()
+    
+    def get_is_favorite(self, obj: Coupon) -> bool:
+        """
+        해당 쿠폰을 즐겨찾기에 등록했는지의 여부입니다.
+        """
+        user = self.context["request"].user
+        couponbook = CouponBook.objects.get(user=user)
+        favorite_coupon = couponbook.favorite_coupons.filter(coupon=obj)
+
+        return favorite_coupon.exists()
+    
+    def get_is_completed(self, obj: Coupon) -> bool:
+        """
+        해당 쿠폰이 완성되었는지를 의미합니다.
+        """
+        original_template: CouponTemplate = obj.original_template
+        reward_info: RewardsInfo = original_template.reward_info
+        max_stamps: int = reward_info.amount
+        current_stamps: int = Stamp.objects.filter(coupon=obj).count()
+
+        return max_stamps == current_stamps
 
 
 @extend_schema_serializer(
@@ -583,18 +662,28 @@ class FavoriteCouponListRequestSerializer(serializers.ModelSerializer):
             "즐겨찾기 목록 응답 예시",
             {
                 "id": 1,
-                "added_at": "2025-08-18 21:40",
                 "coupon": {
-                    "id": 1,
+                   "id": 1,
                     "saved_at": "2025-08-18 21:35",
-                    "couponbook": 1,
+                    "place": {
+                        "id": 1,
+                        "name": "매머드 커피",
+                        "address": "서울 동대문구 이문동 264-223",
+                        "image_url": "http://localhost:8000",
+                        "opens_at": "08:00",
+                        "closes_at": "21:00",
+                        "last_order": "20:30",
+                        "tel": "0507-1361-0962",
+                    },
                     "stamps": [
                         {
                             "id": 1,
                             "stamp_url": "http://localhost:8000/couponbook/stamps/1"
                         }
-                    ]
-                }
+                    ],
+                    "couponbook": 1,
+                },
+                "added_at": "2025-08-18 21:40",
             },
         )
     ]
