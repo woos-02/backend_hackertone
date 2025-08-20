@@ -1,3 +1,5 @@
+"""배포 환경"""
+
 import pymysql
 
 from .settings_base import *
