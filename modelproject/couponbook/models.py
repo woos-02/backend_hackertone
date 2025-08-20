@@ -1,5 +1,7 @@
 from django.db import models
 
+from .latlng.utils import get_place_latlng
+
 # Create your models here.
 
 class CouponBook(models.Model):
@@ -96,6 +98,8 @@ class Place(models.Model):
     """
     name = models.CharField(max_length=20, help_text="가게 이름입니다.")
     address = models.CharField(max_length=50, help_text="가게 주소입니다. 지번 기준입니다. 예시) 서울특별시 동대문구 이문동 107")
+    lat = models.DecimalField(decimal_places=15, max_digits=18, blank=True, null=True, help_text="위도입니다. 데이터 저장 시 자동 게산됩니다.")
+    lng = models.DecimalField(decimal_places=15, max_digits=18, blank=True, null=True, help_text="경도입니다. 데이터 저장 시 자동 계산됩니다.")
     image_url = models.URLField(help_text="가게의 이미지가 담겨 있는 URL입니다.")
     opens_at = models.TimeField(help_text="영업 시작 시간입니다.")
     closes_at = models.TimeField(help_text="영업 종료 시간입니다.")
@@ -104,3 +108,12 @@ class Place(models.Model):
     tel = models.CharField(max_length=20, help_text="가게 전화번호입니다.")
     # 점주와 가게를 1:1로 연결
     owner = models.OneToOneField("accounts.User", on_delete=models.CASCADE, related_name="place", null=True, blank=True, help_text="이 매장의 점주 사용자입니다.")
+
+    def save(self, *args, **kwargs):
+        """
+        위도와 경도 정보를 카카오맵 API를 이용해서 계산해서 저장합니다.
+        """
+        lat, lng = get_place_latlng(self.name)
+        self.lat, self.lng = lat, lng
+        
+        super().save(*args, **kwargs)
