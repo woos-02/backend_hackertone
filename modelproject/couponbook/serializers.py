@@ -206,28 +206,32 @@ class PlaceCreateSerializer(serializers.ModelSerializer):
             "예시",
             {
                 "id": 1,
-                "max_stamps": 10,
-                "saves": 5,
-                "uses": 2,
-                "valid_until": "2025-11-11 23:59",
-                "first_n_persons": 50,
-                "is_on": True,
-                "views": 8,
-                "created_at": "2025-08-18 21:30",
                 "place": {
                     "id": 1,
-                    "name": "매머드 커피",
-                    "address": "서울 동대문구 이문동 264-223",
-                    "image_url": "http://localhost:8000",
                     "opens_at": "08:00",
                     "closes_at": "21:00",
                     "last_order": "20:30",
+                    "name": "매머드 커피",
+                    "address": "서울 동대문구 이문동 264-223",
+                    "lat": "3.002134210000",
+                    "lng": "4.325235349024",
+                    "image_url": "http://localhost:8000",
                     "tel": "0507-1361-0962",
+                    "owner": 1,
                 },
                 "reward_info": {
                     "amount": 10,
                     "reward": "아메리카노 1잔 무료"
-                }
+                },
+                "max_stamps": 10,
+                "saves": 5,
+                "uses": 2,
+                "valid_until": "2025-11-11 23:59",
+                "created_at": "2025-08-18 21:30",
+                "first_n_persons": 50,
+                "is_on": True,
+                "views": 8,
+
             },
         )
     ]
@@ -280,11 +284,29 @@ class CouponTemplateListSerializer(serializers.ModelSerializer):
             "예시",
             {
                 "id": 1,
+                "reward_info": {
+                    "amount": 10,
+                    "reward": "아메리카노 1잔 무료"
+                },
                 "max_stamps": 10,
                 "current_n_remaining": 45,
                 "valid_until": "2025-11-11 23:59",
-                "first_n_persons": 50,
+                "place": {
+                    "id": 1,
+                    "opens_at": "08:00",
+                    "closes_at": "21:00",
+                    "last_order": "20:30",
+                    "name": "매머드 커피",
+                    "address": "서울 동대문구 이문동 264-223",
+                    "lat": "3.002134210000",
+                    "lng": "4.325235349024",
+                    "image_url": "http://localhost:8000",
+                    "tel": "0507-1361-0962",
+                    "owner": 1,
+                },
                 "created_at": "2025-08-18 21:30",
+                "already_owned": True,
+                "first_n_persons": 50,
             },
         )
     ]
@@ -300,6 +322,7 @@ class CouponTemplateDetailSerializer(serializers.ModelSerializer):
     valid_until = serializers.DateTimeField(DATETIME_FORMAT, allow_null=True, required=False)
     place = PlaceDetailResponseSerializer()
     created_at = serializers.DateTimeField(DATETIME_FORMAT)
+    already_owned = serializers.SerializerMethodField()
 
     def get_max_stamps(self, obj: CouponTemplate) -> int:
         """
@@ -314,6 +337,15 @@ class CouponTemplateDetailSerializer(serializers.ModelSerializer):
         """
         coupons = obj.coupons
         return max(0, obj.first_n_persons - coupons.count()) # current_n_remaining 이 음수가 될 수 있어 0으로 바닥 고정
+    
+    def get_already_owned(self, obj: CouponTemplate) -> bool:
+        """
+        이미 해당 쿠폰 템플릿으로 등록한 쿠폰이 있는지의 여부입니다.
+        """
+        user = self.context["request"].user
+        couponbook = CouponBook.objects.get(user=user)
+        own_coupons = Coupon.objects.filter(couponbook=couponbook)
+        return any(map(lambda coupon: coupon.original_template == obj, own_coupons))
 
     class Meta:
         model = CouponTemplate
@@ -404,13 +436,16 @@ class CouponListRequestSerializer(serializers.ModelSerializer):
                 "coupon_url": "http://localhost:8000/couponbook/coupons/1",
                 "place": {
                     "id": 1,
-                    "name": "매머드 커피",
-                    "address": "서울 동대문구 이문동 264-223",
-                    "image_url": "http://localhost:8000",
                     "opens_at": "08:00",
                     "closes_at": "21:00",
                     "last_order": "20:30",
+                    "name": "매머드 커피",
+                    "address": "서울 동대문구 이문동 264-223",
+                    "lat": "3.002134210000",
+                    "lng": "4.325235349024",
+                    "image_url": "http://localhost:8000",
                     "tel": "0507-1361-0962",
+                    "owner": 1,
                 },
                 "max_stamps": 10,
                 "current_stamps": 5,
@@ -524,13 +559,16 @@ class CouponListResponseSerializer(serializers.ModelSerializer):
                 "saved_at": "2025-08-18 21:35",
                 "place": {
                     "id": 1,
-                    "name": "매머드 커피",
-                    "address": "서울 동대문구 이문동 264-223",
-                    "image_url": "http://localhost:8000",
                     "opens_at": "08:00",
                     "closes_at": "21:00",
                     "last_order": "20:30",
+                    "name": "매머드 커피",
+                    "address": "서울 동대문구 이문동 264-223",
+                    "lat": "3.002134210000",
+                    "lng": "4.325235349024",
+                    "image_url": "http://localhost:8000",
                     "tel": "0507-1361-0962",
+                    "owner": 1,
                 },
                 "max_stamps": 10,
                 "current_stamps": 5,
@@ -541,6 +579,7 @@ class CouponListResponseSerializer(serializers.ModelSerializer):
                     }
                 ],
                 "is_favorite": True,
+                "favorite_id": 1,
                 "is_completed": False,
                 "couponbook": 1,
             },
@@ -558,6 +597,7 @@ class CouponDetailResponseSerializer(serializers.ModelSerializer):
     current_stamps = serializers.SerializerMethodField()
     stamps = StampListResponseSerializer(many=True)
     is_favorite = serializers.SerializerMethodField()
+    favorite_id = serializers.SerializerMethodField()
     is_completed = serializers.SerializerMethodField()
 
     class Meta:
@@ -595,6 +635,18 @@ class CouponDetailResponseSerializer(serializers.ModelSerializer):
         favorite_coupon = couponbook.favorite_coupons.filter(coupon=obj)
 
         return favorite_coupon.exists()
+    
+    def get_favorite_id(self, obj: Coupon) -> int | None:
+        """
+        쿠폰이 즐겨찾기에 있을 때, 해당 쿠폰의 즐겨찾기 쿠폰 id입니다.
+        """
+        user = self.context["request"].user
+        couponbook = CouponBook.objects.get(user=user)
+        favorite_coupon = couponbook.favorite_coupons.filter(coupon=obj)
+
+        if favorite_coupon.exists():
+            return favorite_coupon[0].id
+        return None
     
     def get_is_completed(self, obj: Coupon) -> bool:
         """
@@ -667,20 +719,28 @@ class FavoriteCouponListRequestSerializer(serializers.ModelSerializer):
                     "saved_at": "2025-08-18 21:35",
                     "place": {
                         "id": 1,
-                        "name": "매머드 커피",
-                        "address": "서울 동대문구 이문동 264-223",
-                        "image_url": "http://localhost:8000",
                         "opens_at": "08:00",
                         "closes_at": "21:00",
                         "last_order": "20:30",
+                        "name": "매머드 커피",
+                        "address": "서울 동대문구 이문동 264-223",
+                        "lat": "3.002134210000",
+                        "lng": "4.325235349024",
+                        "image_url": "http://localhost:8000",
                         "tel": "0507-1361-0962",
+                        "owner": 1,
                     },
+                    "max_stamps": 10,
+                    "current_stamps": 5,
                     "stamps": [
                         {
                             "id": 1,
                             "stamp_url": "http://localhost:8000/couponbook/stamps/1"
                         }
                     ],
+                    "is_favorite": True,
+                    "favorite_id": 1,
+                    "is_completed": False,
                     "couponbook": 1,
                 },
                 "added_at": "2025-08-18 21:40",
