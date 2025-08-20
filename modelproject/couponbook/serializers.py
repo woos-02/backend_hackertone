@@ -558,6 +558,7 @@ class CouponDetailResponseSerializer(serializers.ModelSerializer):
     current_stamps = serializers.SerializerMethodField()
     stamps = StampListResponseSerializer(many=True)
     is_favorite = serializers.SerializerMethodField()
+    favorite_id = serializers.SerializerMethodField()
     is_completed = serializers.SerializerMethodField()
 
     class Meta:
@@ -595,6 +596,18 @@ class CouponDetailResponseSerializer(serializers.ModelSerializer):
         favorite_coupon = couponbook.favorite_coupons.filter(coupon=obj)
 
         return favorite_coupon.exists()
+    
+    def get_favorite_id(self, obj: Coupon) -> int | None:
+        """
+        쿠폰이 즐겨찾기에 있을 때, 해당 쿠폰의 즐겨찾기 쿠폰 id입니다.
+        """
+        user = self.context["request"].user
+        couponbook = CouponBook.objects.get(user=user)
+        favorite_coupon = couponbook.favorite_coupons.filter(coupon=obj)
+
+        if favorite_coupon.exists():
+            return favorite_coupon[0].id
+        return None
     
     def get_is_completed(self, obj: Coupon) -> bool:
         """
