@@ -4,51 +4,133 @@
 이 모듈은 위치 데이터를 처리하고 반환하는 Django 뷰를 포함합니다.
 주요 기능은 JSON 파일에서 위치 데이터를 읽어와 HTTP 응답으로 제공하는 것입니다.
 """
-
-# from django.http import JsonResponse
-# import json
-# import os
-
-# def get_location_data(request) -> JsonResponse:
-#     """
-#     위치 데이터를 JSON 응답으로 반환합니다.
-
-#     이 함수는 'data/locations.json' 파일에서 위치 정보를 읽어와
-#     HTTP GET 요청에 대한 JSON 응답으로 반환하는 Django 뷰입니다.
-    
-#     Args:
-#         request (HttpRequest): 클라이언트로부터의 HTTP 요청 객체.
-    
-#     Returns:
-#         JsonResponse: 'data/locations.json' 파일의 내용을 담은 JSON 응답.
-#                       파일을 찾을 수 없거나 읽기 오류가 발생하면 빈 딕셔너리를 반환합니다.
-#     """
-#     # JSON 파일 경로 설정
-#     # __file__은 views.py의 경로를 나타냅니다.
-#     # os.path.dirname(__file__)은 views.py가 있는 디렉토리(예: data_api)를 가져옵니다.
-#     # '..'를 사용하여 부모 디렉토리(프로젝트 최상위)로 이동합니다.
-#     # 'data' 폴더와 'locations.json' 파일을 경로에 합칩니다.
-#     file_path = os.path.join(os.path.dirname(__file__), '..', 'data', 'locations.json')
-    
-#     # 파일을 열어 데이터 로드
-#     # 'r' 모드는 읽기 모드입니다.
-#     # encoding='utf-8'은 한글 깨짐을 방지합니다.
-#     with open(file_path, 'r', encoding='utf-8') as f:
-#         data = json.load(f) # 파일을 읽어 JSON 데이터를 파이썬 딕셔너리로 변환
-        
-#     return JsonResponse(data) # 딕셔너리를 JSON 응답으로 반환
-
 from pathlib import Path
+from typing import List, Dict, Any
 from django.conf import settings
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpRequest
 import json
 
-LOC_FILE = Path(settings.BASE_DIR) / "modelproject" / "data" / "locations.json"
-# => 최종 경로: /app/modelproject/data/locations.json
+CANDIDATES = [
+    Path(settings.BASE_DIR) / "data" / "locations.json",                  # 루트/data 우선
+    Path(settings.BASE_DIR) / "modelproject" / "data" / "locations.json", # 기존 경로도 시도
+]
 
-def get_location_data(request):
+def _find_locations_json() -> Path:
+    for p in CANDIDATES:
+        if p.exists():
+            return p
+    return CANDIDATES[0]
+
+def _flatten(payload: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """
+    locations.json을 '시/구/동/코드'의 평탄화 리스트로 변환합니다.
+    새 포맷(payload["index"])과 구 포맷(트리/문자열리스트) 모두 대응.
+    """
+    if isinstance(payload, dict) and "index" in payload:
+        # 새 포맷: 이미 평탄화된 index를 그대로 사용
+        return [
+            {
+                "province": it.get("province"),
+                "city": it.get("city"),
+                "district": it.get("district"),
+                "code": it.get("code"),
+            }
+            for it in payload["index"]
+        ]
+
+    # 구 포맷: 트리에서 평탄화
+    flat: List[Dict[str, Any]] = []
+    for prov, cities in payload.items():
+        for city, districts in cities.items():
+            for d in districts:
+                if isinstance(d, dict):
+                    flat.append({
+                        "province": prov,
+                        "city": city,
+                        "district": d.get("district"),
+                        "code": d.get("code"),
+                    })
+                else:
+                    flat.append({
+                        "province": prov,
+                        "city": city,
+                        "district": d,
+                        "code": None,
+                    })
+    return flat
+
+def _load_flat() -> List[Dict[str, Any]]:
+    loc_file = _find_locations_json()
+    with loc_file.open("r", encoding="utf-8") as f:
+        raw = json.load(f)
+    return _flatten(raw)
+
+def get_location_data(request: HttpRequest):
+    """
+    기본: 평탄화 리스트([{province, city, district, code}, ...]) 반환
+
+    옵션(쿼리 파라미터):
+      - province=서울특별시     : 시/도 완전일치 필터
+      - city=종로구             : 시/군/구 완전일치 필터
+      - d=가회                  : 동 이름 부분검색
+      - code=1111014600         : 법정동코드 완전일치
+      - code_prefix=11110       : 법정동코드 접두 일치(예: 종로구 전체)
+      - mode=string             : "서울특별시 종로구 가회동 1111014600" 문자열 리스트로 반환
+    """
     try:
-        with LOC_FILE.open("r", encoding="utf-8") as f:
-            return JsonResponse(json.load(f))
+        flat = _load_flat()
     except FileNotFoundError:
-        return JsonResponse({"detail": "locations.json not found", "path": str(LOC_FILE)}, status=500)
+        return JsonResponse(
+            {"detail": "locations.json not found", "tried": [str(p) for p in CANDIDATES]},
+            status=500
+        )
+    except json.JSONDecodeError:
+        return JsonResponse(
+            {"detail": "locations.json is not valid JSON"},
+            status=500
+        )
+
+    # 필터
+    province = request.GET.get("province")
+    city = request.GET.get("city")
+    d = request.GET.get("d")
+    code = request.GET.get("code")
+    code_prefix = request.GET.get("code_prefix")
+
+    if province:
+        flat = [r for r in flat if r["province"] == province]
+    if city:
+        flat = [r for r in flat if r["city"] == city]
+    if d:
+        flat = [r for r in flat if r["district"] and d in r["district"]]
+    if code:
+        flat = [r for r in flat if r["code"] == code]
+    if code_prefix:
+        flat = [r for r in flat if r["code"] and r["code"].startswith(code_prefix)]
+
+    # 출력 형태 선택
+    if request.GET.get("mode") == "string":
+        out = [f'{r["province"]} {r["city"]} {r["district"]} {r["code"] or ""}'.strip() for r in flat]
+        return JsonResponse(out, safe=False)
+
+    return JsonResponse(flat, safe=False)
+
+def get_location_hierarchy(request: HttpRequest):
+    """
+    계층형(hierarchy)만 보여주는 엔드포인트.
+    프론트에서 3단 드롭다운(시/군구/동) 구성에 쓰기 좋습니다.
+    """
+    loc_file = _find_locations_json()
+    try:
+        with loc_file.open("r", encoding="utf-8") as f:
+            raw = json.load(f)
+    except FileNotFoundError:
+        return JsonResponse(
+            {"detail": "locations.json not found", "tried": [str(p) for p in CANDIDATES]},
+            status=500
+        )
+
+    # 새 포맷이면 hierarchy만 꺼내고, 구 포맷이면 그대로 반환
+    if isinstance(raw, dict) and "hierarchy" in raw:
+        raw = raw["hierarchy"]
+    return JsonResponse(raw, safe=False)
