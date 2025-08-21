@@ -153,13 +153,16 @@ class RewardsInfoDetailSerializer(serializers.ModelSerializer):
             "예시",
             {
                 "id": 1,
-                "name": "매머드 커피",
                 "address": "서울 동대문구 이문동 264-223",
-                "image_url": "http://localhost:8000",
                 "opens_at": "08:00",
                 "closes_at": "21:00",
                 "last_order": "20:30",
+                "name": "매머드 커피",
+                "lat": "37.21412582140",
+                "lng": "127.3432032904",
+                "image_url": "http://localhost:8000",
                 "tel": "0507-1361-0962",
+                "owner": 1,
             },
         )
     ]
@@ -169,13 +172,18 @@ class PlaceDetailResponseSerializer(serializers.ModelSerializer):
     가게 정보를 조회하는 응답에 사용되는 시리얼라이저입니다.
     """
 
+    address = serializers.SerializerMethodField()
     opens_at = serializers.TimeField(TIME_FORMAT)
     closes_at = serializers.TimeField(TIME_FORMAT)
     last_order = serializers.TimeField(TIME_FORMAT)
 
+    def get_address(self, obj: Place) -> str:
+        legal_district = obj.address_district
+        return f"{legal_district.province} {legal_district.city} {legal_district.district} {obj.address_rest}"
+
     class Meta:
         model = Place
-        fields = "__all__"
+        exclude = ['address_district', 'address_rest']
 
 
 class PlaceSerializer(serializers.ModelSerializer):
@@ -208,13 +216,13 @@ class PlaceCreateSerializer(serializers.ModelSerializer):
                 "id": 1,
                 "place": {
                     "id": 1,
+                    "address": "서울 동대문구 이문동 264-223",
                     "opens_at": "08:00",
                     "closes_at": "21:00",
                     "last_order": "20:30",
                     "name": "매머드 커피",
-                    "address": "서울 동대문구 이문동 264-223",
-                    "lat": "3.002134210000",
-                    "lng": "4.325235349024",
+                    "lat": "37.21412582140",
+                    "lng": "127.3432032904",
                     "image_url": "http://localhost:8000",
                     "tel": "0507-1361-0962",
                     "owner": 1,
@@ -293,13 +301,13 @@ class CouponTemplateListSerializer(serializers.ModelSerializer):
                 "valid_until": "2025-11-11 23:59",
                 "place": {
                     "id": 1,
+                    "address": "서울 동대문구 이문동 264-223",
                     "opens_at": "08:00",
                     "closes_at": "21:00",
                     "last_order": "20:30",
                     "name": "매머드 커피",
-                    "address": "서울 동대문구 이문동 264-223",
-                    "lat": "3.002134210000",
-                    "lng": "4.325235349024",
+                    "lat": "37.21412582140",
+                    "lng": "127.3432032904",
                     "image_url": "http://localhost:8000",
                     "tel": "0507-1361-0962",
                     "owner": 1,
@@ -436,13 +444,13 @@ class CouponListRequestSerializer(serializers.ModelSerializer):
                 "coupon_url": "http://localhost:8000/couponbook/coupons/1",
                 "place": {
                     "id": 1,
+                    "address": "서울 동대문구 이문동 264-223",
                     "opens_at": "08:00",
                     "closes_at": "21:00",
                     "last_order": "20:30",
                     "name": "매머드 커피",
-                    "address": "서울 동대문구 이문동 264-223",
-                    "lat": "3.002134210000",
-                    "lng": "4.325235349024",
+                    "lat": "37.21412582140",
+                    "lng": "127.3432032904",
                     "image_url": "http://localhost:8000",
                     "tel": "0507-1361-0962",
                     "owner": 1,
@@ -559,13 +567,13 @@ class CouponListResponseSerializer(serializers.ModelSerializer):
                 "saved_at": "2025-08-18 21:35",
                 "place": {
                     "id": 1,
+                    "address": "서울 동대문구 이문동 264-223",
                     "opens_at": "08:00",
                     "closes_at": "21:00",
                     "last_order": "20:30",
                     "name": "매머드 커피",
-                    "address": "서울 동대문구 이문동 264-223",
-                    "lat": "3.002134210000",
-                    "lng": "4.325235349024",
+                    "lat": "37.21412582140",
+                    "lng": "127.3432032904",
                     "image_url": "http://localhost:8000",
                     "tel": "0507-1361-0962",
                     "owner": 1,
@@ -719,13 +727,13 @@ class FavoriteCouponListRequestSerializer(serializers.ModelSerializer):
                     "saved_at": "2025-08-18 21:35",
                     "place": {
                         "id": 1,
+                        "address": "서울 동대문구 이문동 264-223",
                         "opens_at": "08:00",
                         "closes_at": "21:00",
                         "last_order": "20:30",
                         "name": "매머드 커피",
-                        "address": "서울 동대문구 이문동 264-223",
-                        "lat": "3.002134210000",
-                        "lng": "4.325235349024",
+                        "lat": "37.21412582140",
+                        "lng": "127.3432032904",
                         "image_url": "http://localhost:8000",
                         "tel": "0507-1361-0962",
                         "owner": 1,

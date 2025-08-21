@@ -1,9 +1,8 @@
 from django.contrib import admin
-
 from django.db import models
 
-from .models import (Coupon, CouponBook, CouponTemplate, Place, Receipt,
-                     RewardsInfo, Stamp)
+from .models import (Coupon, CouponBook, CouponTemplate, LegalDistrict, Place,
+                     Receipt, RewardsInfo, Stamp)
 
 
 # CouponBook 모델을 Django 관리자 페이지에 등록
@@ -68,7 +67,11 @@ class ReceiptAdmin(admin.ModelAdmin):
     list_display = ("receipt_number", "created_at")
     search_fields = ("receipt_number",)
 
+@admin.register(LegalDistrict)
+class LegalDistrictAdmin(admin.ModelAdmin):
+    list_display = ("code_in_law", "province", "city", "district")
+
 @admin.register(Place)
 class PlaceAdmin(admin.ModelAdmin):
-    list_display = ("id", "name", "address", "tel")
-    search_fields = ("id", "name", "address", "tel")
+    list_display = ("id", "name", "address_district", "address_rest", "tel")
+    search_fields = ("id", "name", "address_district", "tel")
