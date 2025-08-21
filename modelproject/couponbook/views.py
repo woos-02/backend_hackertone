@@ -79,6 +79,7 @@ class CouponBookDetailView(RetrieveAPIView):
             OpenApiParameter('name', str, OpenApiParameter.QUERY, description='가게 이름입니다. (영어의 경우 대소문자 구분 없음)'),
             OpenApiParameter('is_expired', bool, OpenApiParameter.QUERY, description='쿠폰의 만료 여부입니다. (true / false, 대소문자 구별 없음)'),
             OpenApiParameter('is_open', bool, OpenApiParameter.QUERY, description='현재 영업중인지 여부입니다. (true / false, 대소문자 구별 없음)'),
+            OpenApiParameter('ordering', str, OpenApiParameter.QUERY, description='정렬 기준입니다. stamp_counts: 스탬프 개수 오름차순 / -stamp_counts: 스탬프 개수 내림차순'),
         ]
     ),
     post=extend_schema(
