@@ -1,3 +1,4 @@
+from django.db.models import Count
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import (OpenApiExample, OpenApiParameter,
@@ -98,7 +99,7 @@ class CouponListView(ListCreateAPIView):
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
     filterset_class = CouponFilter
-    ordering_fields = ['id', 'saved_at']
+    ordering_fields = ['id', 'saved_at', 'stamp_counts']
 
     def get_queryset(self):
         """
@@ -106,6 +107,7 @@ class CouponListView(ListCreateAPIView):
         """
         couponbook_id: int = self.kwargs['couponbook_id']
         queryset = Coupon.objects.filter(couponbook_id=couponbook_id)
+        queryset = queryset.annotate(stamp_counts=Count('stamps'))
 
         return queryset
     
