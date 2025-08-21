@@ -92,12 +92,25 @@ class Receipt(models.Model):
     receipt_number = models.CharField(max_length=30, help_text="영수증 번호입니다. 중복되지 않습니다.", unique=True, primary_key=True)
     created_at = models.DateTimeField(auto_now_add=True, help_text="점주에 의해 영수증이 등록된 날짜와 시간입니다.")
 
+class LegalDistrict(models.Model):
+    """
+    전국의 주소를 법정동 단위까지 담는 모델입니다. Fixture를 사용해서 미리 데이터를 로딩해둬야 합니다.
+    """
+    code_in_law = models.CharField(max_length=10, help_text="법정동 코드입니다. 예) 1123011000", unique=True, primary_key=True)
+    province = models.CharField(max_length=8, help_text="광역시, 도 단위입니다. 예) 서울특별시")
+    city = models.CharField(max_length=5, help_text="시, 군, 구 단위입니다. 예) 동대문구")
+    district = models.CharField(max_length=7, help_text="읍, 면, 동 단위입니다. 예) 이문동")
+
 class Place(models.Model):
     """
     가게 모델입니다.
     """
     name = models.CharField(max_length=20, help_text="가게 이름입니다.")
-    address = models.CharField(max_length=50, help_text="가게 주소입니다. 지번 기준입니다. 예시) 서울특별시 동대문구 이문동 107")
+    address_district = models.OneToOneField(LegalDistrict,
+                                            on_delete=models.CASCADE,
+                                            related_name='place',
+                                            help_text="가게의 법정동 부분까지의 주소입니다. 예) 서울특별시 동대문구 이문동")
+    address_rest = models.CharField(max_length=15, help_text="지번 포함 나머지 주소 부분입니다. 예) 107")
     lat = models.DecimalField(decimal_places=15, max_digits=18, blank=True, null=True, help_text="위도입니다. 데이터 저장 시 자동 게산됩니다.")
     lng = models.DecimalField(decimal_places=15, max_digits=18, blank=True, null=True, help_text="경도입니다. 데이터 저장 시 자동 계산됩니다.")
     image_url = models.URLField(help_text="가게의 이미지가 담겨 있는 URL입니다.")
@@ -117,3 +130,4 @@ class Place(models.Model):
         self.lat, self.lng = lat, lng
         
         super().save(*args, **kwargs)
+

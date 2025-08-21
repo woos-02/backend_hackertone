@@ -116,7 +116,7 @@ class RegisterOwnerSerializer(BaseRegisterSerializer):
 
     - 필수 필드: 'place' (가게 생성 정보)
     """
-    place = PlaceCreateSerializer(required=True)
+    # place = PlaceCreateSerializer(required=True)
 
     class Meta(BaseRegisterSerializer.Meta):
         fields: tuple[Literal['id'], Literal['username'], Literal['email'], Literal['password'], Literal['phone']] = BaseRegisterSerializer.Meta.fields + ("place",)

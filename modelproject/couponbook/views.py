@@ -13,6 +13,7 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
 from .curation.utils import AICurator, UserStatistics
+from .filters import CouponFilter, CouponTemplateFilter
 from .models import *
 from .models import CouponTemplate, Place
 from .serializers import *
@@ -70,6 +71,12 @@ class CouponBookDetailView(RetrieveAPIView):
         tags=["Coupons"],
         description="쿠폰북 id에 해당하는 쿠폰북에 속한 쿠폰들의 목록을 가져옵니다.",
         summary="쿠폰북에 속한 쿠폰들의 목록 조회",
+        parameters=[
+            OpenApiParameter('couponbook_id', int, OpenApiParameter.PATH),
+            OpenApiParameter('address', str, OpenApiParameter.QUERY, description='가게의 광역시 ~ 법정동 주소입니다. 일부 일치 검색입니다.'),
+            OpenApiParameter('district', str, OpenApiParameter.QUERY, description='가게의 법정동 주소 중 법정동 부분입니다. 정확하게 일치해야 합니다.'),
+            OpenApiParameter('name', str, OpenApiParameter.QUERY, description='가게 이름입니다. (영어의 경우 대소문자 구분 없음)'),
+        ]
     ),
     post=extend_schema(
         tags=["Coupons"],
@@ -87,6 +94,8 @@ class CouponListView(ListCreateAPIView):
     serializer_class = CouponListResponseSerializer
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = CouponFilter
 
     def get_queryset(self):
         """
@@ -165,7 +174,6 @@ class CouponCurationView(ListAPIView):
         coupon_id = curator.curate(user_statistics)
         return Coupon.objects.filter(id=coupon_id)
     
-
 @extend_schema_view(
     get=extend_schema(
         tags=["Favorites"],
@@ -267,6 +275,8 @@ class CouponTemplateListView(generics.ListCreateAPIView):
     """
     queryset = CouponTemplate.objects.filter(is_on=True)
     authentication_classes = [JWTAuthentication]
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = CouponTemplateFilter
 
     def get_serializer_class(self):
         if self.request.method == "GET":
@@ -289,6 +299,7 @@ class CouponTemplateListView(generics.ListCreateAPIView):
             raise ValidationError({"detail": "등록된 가게가 없습니다. 먼저 가게를 등록해주세요."})
         serializer.save(place=place)
 
+
 @extend_schema_view(
     get=extend_schema(
         tags=["Templates"],
@@ -308,36 +319,7 @@ class CouponTemplateDetailView(RetrieveAPIView):
     queryset = CouponTemplate.objects.filter(is_on=True)
     lookup_url_kwarg = 'coupon_template_id'
 
-    
-@extend_schema(
-    tags=["Public"],
-    summary="가게 목록 검색",
-    description="""
-    가게 목록을 조회하고, 쿼리 파라미터를 사용해 검색할 수 있습니다.
-    - `search`: `name` 또는 `address` 필드에서 키워드 검색
-    """,
-    auth=None,
-    parameters=[
-        OpenApiParameter(
-            name="search",
-            location=OpenApiParameter.QUERY,
-            description="가게명/주소 키워드",
-            required=False,
-            type=str,
-        ),
-    ],
-)
-class PlaceListView(generics.ListAPIView):
-    """
-    가게 목록을 조회하고 검색/필터링 기능을 제공하는 API 뷰입니다.
-    """
-    queryset = Place.objects.all()
-    serializer_class = PlaceSerializer
-    permission_classes = [permissions.AllowAny]
-    authentication_classes = [] # 토큰 불필요
-    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
-    search_fields = ['name', 'address']
-    
+
 # -------------------------------- 스탬프 ---------------------------------
 @extend_schema_view(
     get=extend_schema(
