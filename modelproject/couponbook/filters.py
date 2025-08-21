@@ -27,7 +27,10 @@ class CouponTemplateFilter(filters.FilterSet):
     is_open = filters.BooleanFilter(field_name='place',
                                     method='filter_is_open',
                                     help_text="현재 영업중인지 여부입니다.")
-    # todo: 태그 필터링 추가
+    tag = filters.CharFilter(field_name='place__tags',
+                             lookup_expr='icontains',
+                             help_text="가게의 태그입니다. 한 태그씩만 검색할 수 있습니다.")
+
 
     def filter_address(self, queryset, name, value):
         """
@@ -78,8 +81,11 @@ class CouponFilter(filters.FilterSet):
     is_open = filters.BooleanFilter(field_name=field_prefix+'place',
                                     method='filter_is_open',
                                     help_text="현재 영업중인지 여부입니다.")
-    # todo: 태그 필터링 추가
+    tag = filters.CharFilter(field_name=field_prefix+'place__tags',
+                             lookup_expr='icontains',
+                             help_text="가게의 태그입니다. 한 태그씩만 검색할 수 있습니다.")
     
+
     def filter_address(self, queryset, name, value):
         """
         광역시 ~ 법정동을 기준으로 필터링하는 메소드입니다.

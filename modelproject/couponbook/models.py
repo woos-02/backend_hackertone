@@ -115,7 +115,7 @@ class Place(models.Model):
     image_url = models.URLField(help_text="가게의 이미지가 담겨 있는 URL입니다.")
     opens_at = models.TimeField(help_text="영업 시작 시간입니다.")
     closes_at = models.TimeField(help_text="영업 종료 시간입니다.")
-    # todo: 영업하는 요일 필드 추가
+    tags = models.CharField(max_length=20, blank=True, null=True, help_text="가게의 태그들입니다. 콤마로 구분해서 입력하세요.")
     last_order = models.TimeField(help_text="라스트오더 시간입니다.")
     tel = models.CharField(max_length=20, help_text="가게 전화번호입니다.")
     # 점주와 가게를 1:1로 연결
