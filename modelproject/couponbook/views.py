@@ -76,6 +76,8 @@ class CouponBookDetailView(RetrieveAPIView):
             OpenApiParameter('address', str, OpenApiParameter.QUERY, description='가게의 광역시 ~ 법정동 주소입니다. 일부 일치 검색입니다.'),
             OpenApiParameter('district', str, OpenApiParameter.QUERY, description='가게의 법정동 주소 중 법정동 부분입니다. 정확하게 일치해야 합니다.'),
             OpenApiParameter('name', str, OpenApiParameter.QUERY, description='가게 이름입니다. (영어의 경우 대소문자 구분 없음)'),
+            OpenApiParameter('is_expired', bool, OpenApiParameter.QUERY, description='쿠폰의 만료 여부입니다. (true / false, 대소문자 구별 없음)'),
+            OpenApiParameter('is_open', bool, OpenApiParameter.QUERY, description='현재 영업중인지 여부입니다. (true / false, 대소문자 구별 없음)'),
         ]
     ),
     post=extend_schema(
@@ -94,8 +96,9 @@ class CouponListView(ListCreateAPIView):
     serializer_class = CouponListResponseSerializer
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
-    filter_backends = [DjangoFilterBackend]
+    filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
     filterset_class = CouponFilter
+    ordering_fields = ['id', 'saved_at']
 
     def get_queryset(self):
         """

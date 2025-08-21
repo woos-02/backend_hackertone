@@ -238,8 +238,6 @@ class PlaceCreateSerializer(serializers.ModelSerializer):
                 "created_at": "2025-08-18 21:30",
                 "first_n_persons": 50,
                 "is_on": True,
-                "views": 8,
-
             },
         )
     ]
@@ -357,7 +355,7 @@ class CouponTemplateDetailSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = CouponTemplate
-        exclude = ["is_on", "views"]
+        exclude = ["is_on"]
 
 
 
@@ -373,7 +371,7 @@ class CouponTemplateCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = CouponTemplate
         # place 필드는 뷰에서 처리하므로 제외
-        exclude = ["id", "place", "views", "created_at"]
+        exclude = ["id", "place", "created_at"]
 
     def create(self, validated_data):
         reward = validated_data.pop("reward_info")  # required=True 이므로 존재 보장
