@@ -777,6 +777,10 @@ class FavoriteCouponListRequestSerializer(serializers.ModelSerializer):
                         "tel": "0507-1361-0962",
                         "owner": 1,
                     },
+                    "reward_info": {
+                    "amount": 10,
+                    "reward": "음료수 1잔 무료"
+                    },
                     "max_stamps": 10,
                     "current_stamps": 5,
                     "stamps": [
@@ -788,6 +792,7 @@ class FavoriteCouponListRequestSerializer(serializers.ModelSerializer):
                     "is_favorite": True,
                     "favorite_id": 1,
                     "is_completed": False,
+                    "days_remaining": 3,
                     "couponbook": 1,
                 },
                 "added_at": "2025-08-18 21:40",
