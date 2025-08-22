@@ -10,7 +10,6 @@ class CouponBookViewTestCase(APITestCase):
     """
     쿠폰북 뷰 관련
     """
-    
     @print_success_message("본인의 쿠폰만 보이는지 테스트")
     def test_only_my_coupon(self):
         """
@@ -26,11 +25,11 @@ class CouponBookViewTestCase(APITestCase):
         r1_user1 = self.client.get('/couponbook/couponbooks/1/coupons/')
         self.assertEqual(r1_user1.status_code, 200) # 본인의 쿠폰들이므로 200
         r2_user1 = self.client.get('/couponbook/couponbooks/2/coupons/')
-        self.assertEqual(r2_user1.status_code, 401) # 남의 쿠폰들이므로 401
+        self.assertEqual(r2_user1.status_code, 403, "프라이버시가 지켜지지 않고 있습니다..") # 남의 쿠폰들이므로 Forbidden
 
         # user2로 로그인
         self.client.force_authenticate(user=user2)
         r1_user2 = self.client.get('/couponbook/couponbooks/1/coupons/')
-        self.assertEqual(r1_user2.status_code, 401) # 남의 쿠폰들이므로 401
+        self.assertEqual(r1_user2.status_code, 403, "프라이버시가 지켜지지 않고 있습니다..") # 남의 쿠폰들이므로 Forbidden
         r2_user2 = self.client.get('/couponbook/couponbooks/2/coupons/')
         self.assertEqual(r2_user2.status_code, 200) # 본인의 쿠폰들이므로 200
