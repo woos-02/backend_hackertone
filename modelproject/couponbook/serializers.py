@@ -778,8 +778,8 @@ class FavoriteCouponListRequestSerializer(serializers.ModelSerializer):
                         "owner": 1,
                     },
                     "reward_info": {
-                    "amount": 10,
-                    "reward": "음료수 1잔 무료"
+                        "amount": 10,
+                        "reward": "음료수 1잔 무료"
                     },
                     "max_stamps": 10,
                     "current_stamps": 5,
