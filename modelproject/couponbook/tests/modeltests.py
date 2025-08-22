@@ -18,7 +18,7 @@ class CouponBookTestCase(TestCase):
         user = User.objects.create(username='test', password='1234')
         self.assertEqual(CouponBook.objects.filter(user=user).exists(), True)
 
-
+# 쿠폰 관련 테스트케이스
 class CouponTestCase(TestCase):
     def setUp(self):
         """
