@@ -133,6 +133,7 @@ class Place(models.Model):
         if latlng:
             self.lat, self.lng = latlng
             
-            super().save(*args, **kwargs)
+            return super().save(*args, **kwargs)
         
+        print("존재하지 않는 가게여서 등록되지 않았습니다. 실존하는 가게임에도 등록이 되지 않는다면, 카카오맵에서 검색 가능한 가게인지 확인해보세요.")
         return
