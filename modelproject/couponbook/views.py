@@ -1,3 +1,4 @@
+from django.db.models import Count
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import (OpenApiExample, OpenApiParameter,
@@ -76,6 +77,9 @@ class CouponBookDetailView(RetrieveAPIView):
             OpenApiParameter('address', str, OpenApiParameter.QUERY, description='가게의 광역시 ~ 법정동 주소입니다. 일부 일치 검색입니다.'),
             OpenApiParameter('district', str, OpenApiParameter.QUERY, description='가게의 법정동 주소 중 법정동 부분입니다. 정확하게 일치해야 합니다.'),
             OpenApiParameter('name', str, OpenApiParameter.QUERY, description='가게 이름입니다. (영어의 경우 대소문자 구분 없음)'),
+            OpenApiParameter('is_expired', bool, OpenApiParameter.QUERY, description='쿠폰의 만료 여부입니다. (true / false, 대소문자 구별 없음)'),
+            OpenApiParameter('is_open', bool, OpenApiParameter.QUERY, description='현재 영업중인지 여부입니다. (true / false, 대소문자 구별 없음)'),
+            OpenApiParameter('ordering', str, OpenApiParameter.QUERY, description='정렬 기준입니다. stamp_counts: 스탬프 개수 오름차순 / -stamp_counts: 스탬프 개수 내림차순'),
         ]
     ),
     post=extend_schema(
@@ -94,8 +98,9 @@ class CouponListView(ListCreateAPIView):
     serializer_class = CouponListResponseSerializer
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
-    filter_backends = [DjangoFilterBackend]
+    filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
     filterset_class = CouponFilter
+    ordering_fields = ['id', 'saved_at', 'stamp_counts']
 
     def get_queryset(self):
         """
@@ -103,6 +108,7 @@ class CouponListView(ListCreateAPIView):
         """
         couponbook_id: int = self.kwargs['couponbook_id']
         queryset = Coupon.objects.filter(couponbook_id=couponbook_id)
+        queryset = queryset.annotate(stamp_counts=Count('stamps'))
 
         return queryset
     
@@ -298,7 +304,16 @@ class CouponTemplateListView(generics.ListCreateAPIView):
         if place is None:
             raise ValidationError({"detail": "등록된 가게가 없습니다. 먼저 가게를 등록해주세요."})
         serializer.save(place=place)
-
+        
+    def get_queryset(self):
+        """
+        FK(Place -> LegalDistrict)를 직렬화에서 접근하므로
+        select_related로 한 번에 조인해 안전/성능을 확보합니다.
+        """
+        # 부모에 get_queryset이 있으면 사용, 없으면 기본 queryset 사용
+        qs = super().get_queryset() if hasattr(super(), "get_queryset") else self.queryset
+        # Place 및 LegalDistrict 조인
+        return qs.select_related("place", "place__address_district")
 
 @extend_schema_view(
     get=extend_schema(
