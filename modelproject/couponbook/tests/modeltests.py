@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from accounts.models import User
+from couponbook.latlng.utils import KakaoMapAPIClient
 from couponbook.models import *
 from django.test import TestCase
 from django.utils.timezone import now
@@ -111,3 +112,97 @@ class CouponTestCase(TestCase):
         
         # 5. 영수증 - 스탬프 연동 해제 테스트
         self.assertEqual(hasattr(receipt, 'stamp'), False, "영수증과 연결된 스탬프가 남아있음!")
+
+class PlaceTestCase(TestCase):
+    def setUp(self):
+        legal_district_1 = {
+            'code_in_law': '1114011100',
+            'province': '서울특별시',
+            'city': '중구',
+            'district': '소공동',
+        }
+        legal_district_2 = {
+            'code_in_law': '1117010500',
+            'province': '서울특별시',
+            'city': '용산구',
+            'district': '남영동',
+        }
+        legal_district_3 = {
+            'code_in_law': '4111710100',
+            'province': '경기도',
+            'city': '수원시영통구',
+            'district': '이문동',
+        }
+
+        LegalDistrict.objects.create(**legal_district_1)
+        LegalDistrict.objects.create(**legal_district_2)
+        LegalDistrict.objects.create(**legal_district_3)
+
+    @print_success_message("가게 등록 시 가게의 위도, 경도를 제대로 저장하는지 확인 테스트")
+    def test_place_lat_and_lng(self):
+        legal_district = LegalDistrict.objects.get(code_in_law='1114011100')
+
+        place_dict = {
+            'name': '서울역',
+            'address_district': legal_district,
+            'address_rest': '1234',
+            'image_url': 'aaa.jpg',
+            'opens_at': datetime.now().time(),
+            'closes_at': datetime.now().time(),
+            'tags': '역',
+            'last_order': datetime.now().time(),
+            'tel': '02-xxxx-xxxx',
+            'owner': None,
+        }
+        place = Place.objects.create(**place_dict)
+        lat, lng = place.lat, place.lng
+
+        client = KakaoMapAPIClient()
+        kakaomap_place = client.find_place_by_keyword("서울역")
+        t_lat, t_lng = kakaomap_place.get_latlng()
+        
+        self.assertEqual((lat, lng), (t_lat, t_lng))
+
+    @print_success_message("가게 등록 시 없는 가게 이름으로 가게를 등록하는 경우의 예외 처리 테스트")
+    def test_false_place_lat_and_lng(self):
+        legal_district = LegalDistrict.objects.get(code_in_law='1117010500')
+        place_dict = {
+            'name': '디즈니랜드 서울',
+            'address_district': legal_district,
+            'address_rest': '1234',
+            'image_url': 'aaa.jpg',
+            'opens_at': datetime.now().time(),
+            'closes_at': datetime.now().time(),
+            'tags': '역',
+            'last_order': datetime.now().time(),
+            'tel': '02-xxxx-xxxx',
+            'owner': None,
+        }
+
+        place = Place.objects.create(**place_dict)
+    
+    @print_success_message("가게 등록 시 이름이 중복된 가게의 위도, 경도가 제대로 처리되는지 테스트")
+    def test_not_unique_place_name_lat_lng(self):
+        # 키워드 군포해물탕 vs 군포해물탕 화성 위도와 경도 비교
+        legal_district = LegalDistrict.objects.get(code_in_law='1123011000')
+        place_dict = {
+            'name': '행복한한끼',
+            'address_district': legal_district,
+            'address_rest': '1234',
+            'image_url': 'aaa.jpg',
+            'opens_at': datetime.now().time(),
+            'closes_at': datetime.now().time(),
+            'tags': '식당',
+            'last_order': datetime.now().time(),
+            'tel': '02-xxxx-xxxx',
+            'owner': None,
+        }
+        place = Place.objects.create(**place_dict)
+        lat, lng = place.lat, place.lng
+
+        client = KakaoMapAPIClient()
+        kakaomap_place = client.find_place_by_keyword("군포해물탕 화성")
+        t_lat, t_lng = kakaomap_place.get_latlng()
+
+        # place의 예상되는 위도, 경도: place의 address_district 정보를 추가로 활용해서 검색된 값
+        self.assertEqual((lat, lng), (t_lat, t_lng), f"예상된 값과 위도와 경도가 다름: ({(t_lat, t_lng)})")
