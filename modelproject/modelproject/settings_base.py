@@ -10,10 +10,6 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
-from dotenv import load_dotenv
-load_dotenv(override=True)   # BASE_DIR/.env 를 자동 로드
-
-
 import pymysql
 
 pymysql.install_as_MySQLdb()
@@ -22,13 +18,13 @@ from pathlib import Path
 
 
 # 환경변수 설정
-from decouple import config
+from decouple import config, AutoConfig
 
 SECRET_KEY = config("SECRET_KEY")
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-
+config = AutoConfig(search_path=BASE_DIR)
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
@@ -167,12 +163,10 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 AUTH_USER_MODEL = "accounts.User"
 
-import os
-
-AWS_STORAGE_BUCKET_NAME = os.getenv("AWS_STORAGE_BUCKET_NAME")
-AWS_S3_REGION_NAME      = os.getenv("AWS_S3_REGION_NAME")
-AWS_ACCESS_KEY_ID       = os.getenv("AWS_ACCESS_KEY_ID")
-AWS_SECRET_ACCESS_KEY   = os.getenv("AWS_SECRET_ACCESS_KEY")
+AWS_STORAGE_BUCKET_NAME = config("AWS_STORAGE_BUCKET_NAME")
+AWS_S3_REGION_NAME      = config("AWS_S3_REGION_NAME")
+AWS_ACCESS_KEY_ID       = config("AWS_ACCESS_KEY_ID")
+AWS_SECRET_ACCESS_KEY   = config("AWS_SECRET_ACCESS_KEY")
 
 # S3 공통
 AWS_S3_SIGNATURE_VERSION = "s3v4"
@@ -184,7 +178,7 @@ AWS_S3_OBJECT_PARAMETERS = {"CacheControl": "max-age=86400"}
 # URL 구성
 AWS_S3_CUSTOM_DOMAIN = None  # CloudFront 쓰면 여기에 도메인
 
-STATIC_LOCATION = os.getenv("STATIC_LOCATION", "static-dev")
+STATIC_LOCATION = config("STATIC_LOCATION", "static-dev")
 
 # Django 4.2+ : STORAGES 방식
 STORAGES = {

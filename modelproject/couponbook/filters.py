@@ -56,7 +56,7 @@ class CouponFilter(filters.FilterSet):
             Q(original_template__place__opens_at__lte=now)
             & Q(original_template__place__last_order__gt=now)
         )
-        return queryset.filter(cond) if value else queryset.exclude(cond)
+        return queryset.filter(cond) if value else queryset
 
     def filter_is_expired(self, queryset, name: str, value: bool) -> Any:
         if value is None:
@@ -65,7 +65,7 @@ class CouponFilter(filters.FilterSet):
         expired = Q(original_template__valid_until__isnull=False) & Q(
             original_template__valid_until__lt=now_dt
         )
-        return queryset.filter(expired) if value else queryset.exclude(expired)
+        return queryset.filter(expired) if value else queryset
 
 
 class CouponTemplateFilter(filters.FilterSet):
@@ -91,7 +91,7 @@ class CouponTemplateFilter(filters.FilterSet):
         model = CouponTemplate
         fields = ["name", "tag", "district", "address", "is_open", "already_own"]
 
-    def filter_address(self, queryset, name: str, value: str) -> Any:
+    def filter_address(self, queryset, name: str, value: str):
         if not value:
             return queryset
         q = queryset.annotate(
@@ -127,7 +127,7 @@ class CouponTemplateFilter(filters.FilterSet):
 
         # Coupon.couponbook(user) -> Coupon.original_template(=CouponTemplate) 경로
         owned_qs = queryset.filter(coupons__couponbook__user=user).distinct()
-        return owned_qs if value else queryset.exclude(pk__in=owned_qs.values("pk")).distinct()
+        return owned_qs if value else queryset
 
 # from datetime import datetime
 
