@@ -39,5 +39,6 @@ prod = [
 
 [dependency-groups]
 dev = [
+    "coverage>=7.10.4",
     "django-debug-toolbar>=6.0.0",
 ]
