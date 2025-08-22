@@ -9,8 +9,10 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken,OutstandingToken
-
+from rest_framework_simplejwt.token_blacklist.models import (
+    BlacklistedToken,
+    OutstandingToken,
+)
 from rest_framework_simplejwt.tokens import RefreshToken, TokenError
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
@@ -24,6 +26,7 @@ from .serializers import (
 )
 
 User: type[AbstractUser] = get_user_model()
+
 
 # ------------------------ 손님 회원가입 -------------------------
 @extend_schema(
@@ -61,7 +64,11 @@ class RegisterCustomerView(APIView):
     """
 
     # DRF 브라우저에서 JSON/폼 모두 받을 수 있도록 파서 명시
-    parser_classes: tuple[type[JSONParser], type[FormParser], type[MultiPartParser]] = (JSONParser, FormParser, MultiPartParser)
+    parser_classes: tuple[type[JSONParser], type[FormParser], type[MultiPartParser]] = (
+        JSONParser,
+        FormParser,
+        MultiPartParser,
+    )
     authentication_classes: tuple = ()
 
     def post(self, request: Request) -> Response:
@@ -76,14 +83,16 @@ class RegisterCustomerView(APIView):
         user = serializer.save()
 
         # 비밀번호는 write_only 이므로 응답에 포함되지 않음
-        return Response(RegisterCustomerSerializer(user).data, status=status.HTTP_201_CREATED)
+        return Response(
+            RegisterCustomerSerializer(user).data, status=status.HTTP_201_CREATED
+        )
+
 
 # ------------------------ 점주 회원가입 -------------------------
 @extend_schema(
     tags=["Auth"],
     summary="점주 회원가입",
-    description=
-    """
+    description="""
     새로운 **점주(OWNER)** 사용자를 생성하는 엔드포인트입니다.
     `username`, `email`, `password`, `phone` 및 **가게 정보**를 요청 본문에 담아 보냅니다.
     """,
@@ -116,7 +125,10 @@ class RegisterOwnerView(APIView):
         )
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
-        return Response(RegisterOwnerSerializer(user).data, status=status.HTTP_201_CREATED)
+        return Response(
+            RegisterOwnerSerializer(user).data, status=status.HTTP_201_CREATED
+        )
+
 
 # ------------------------ 로그인 -------------------------
 @extend_schema(
@@ -151,8 +163,10 @@ class LoginView(TokenObtainPairView):
     성공 시, 클라이언트는 `access`와 `refresh` 토큰을 응답으로 받게 됩니다.
     `access` 토큰은 보호된 API에 접근할 때 사용되며, `refresh` 토큰은 `access` 토큰이 만료되었을 때 재발급받는 데 사용됩니다.
     """
+
     authentication_classes: tuple = ()
     serializer_class = IdentifierTokenObtainPairSerializer
+
 
 # ------------------------ Access 토큰 재발급 -------------------------
 @extend_schema(
@@ -161,11 +175,23 @@ class LoginView(TokenObtainPairView):
     description="""
     만료된 Access 토큰 대신 Refresh 토큰을 사용하여 새로운 Access 토큰을 발급받습니다.
     """,
-    request={
-        "application/json": {"example": {"refresh": "your_refresh_token_here"}}
-    },
+    request={"application/json": {"example": {"refresh": "your_refresh_token_here"}}},
     responses={
-        200: {"description": "새로운 Access 토큰 발급", "content": {"application/json": {"examples": {"success": {"value": {"access": "new_access_token_here", "refresh": "your_refresh_token_here"}}}}}},
+        200: {
+            "description": "새로운 Access 토큰 발급",
+            "content": {
+                "application/json": {
+                    "examples": {
+                        "success": {
+                            "value": {
+                                "access": "new_access_token_here",
+                                "refresh": "your_refresh_token_here",
+                            }
+                        }
+                    }
+                }
+            },
+        },
         401: {"description": "유효하지 않은 토큰"},
     },
     auth=None,
@@ -178,8 +204,10 @@ class RefreshView(TokenRefreshView):
     요청 본문(JSON):
         - `refresh`: 기존에 발급받은 Refresh 토큰
     """
+
     authentication_classes: tuple = ()
     pass
+
 
 # ------------------------ 사용자 정보 조회 -------------------------
 @extend_schema(
@@ -216,6 +244,7 @@ class MeView(APIView):
         serializer = MeSerializer(user)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+
 # ------------------------ 마이페이지 프로필 조회 및 수정 -------------------------
 @extend_schema(
     tags=["User"],
@@ -239,6 +268,7 @@ class UserProfileView(generics.RetrieveUpdateAPIView):
         이를 통해 다른 사용자의 프로필을 조회하거나 수정하는 것을 방지합니다.
         """
         return self.request.user
+
 
 # ------------------------ 로그아웃 -------------------------
 @extend_schema(
@@ -308,6 +338,7 @@ class LogoutView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+
 # ------------------------ 회원 탈퇴 -------------------------
 @extend_schema(
     tags=["User"],
@@ -325,14 +356,46 @@ class UserDeactivateView(generics.DestroyAPIView):
 
     DELETE 요청 시, 현재 로그인된 사용자 계정을 비활성화(삭제)합니다.
     계정이 삭제되면 더 이상 로그인할 수 없게 됩니다.
+
+    - 권장: DELETE /accounts/deactivate  (본문 JSON) {"password": "현재비번"}
+    - 일부 클라이언트 제약 대응: ?password=... 쿼리스트링도 허용
+    - 성공 시 204 No Content
     """
 
     # 로그인 상태에서만 접근 가능
     permission_classes: list[type[IsAuthenticated]] = [permissions.IsAuthenticated]
 
-    def get_object(self) -> AbstractUser | AnonymousUser:
-        """
-        현재 인증된 사용자 객체를 반환합니다.
-        다른 사용자의 계정을 삭제하는 것을 방지합니다.
-        """
-        return self.request.user
+    def _blacklist_all_tokens(self, user: User) -> None:
+        try:
+            for outstanding in OutstandingToken.objects.filter(user=user):
+                BlacklistedToken.objects.get_or_create(token=outstanding)
+        except Exception:
+            pass  # token_blacklist 미사용 시 무시
+
+    def delete(self, request: Request) -> Response:
+        password = (
+            request.data.get("password") if isinstance(request.data, dict) else None
+        )
+        password = password or request.query_params.get("password")
+        if not password:
+            return Response(
+                {"detail": "password가 필요합니다."}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+        user: User = request.user  # type: ignore
+        if not user.check_password(password):
+            return Response(
+                {"detail": "현재 비밀번호가 올바르지 않습니다."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        self._blacklist_all_tokens(user)
+        user.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    # def get_object(self) -> AbstractUser | AnonymousUser:
+    #     """
+    #     현재 인증된 사용자 객체를 반환합니다.
+    #     다른 사용자의 계정을 삭제하는 것을 방지합니다.
+    #     """
+    #     return self.request.user

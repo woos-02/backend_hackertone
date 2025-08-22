@@ -44,7 +44,7 @@ urlpatterns: list = [
     path("auth/logout/", LogoutView.as_view(), name="logout"),  # 로그아웃
     path("auth/refresh/", RefreshView.as_view(), name="refresh"),  # Access 토큰 재발급
     path(
-        "deactivate", UserDeactivateView.as_view(), name="user-deactivate"
+        "deactivate/", UserDeactivateView.as_view(), name="user-deactivate"
     ),  # 회원 탈퇴
     path("auth/me/", MeView.as_view(), name="me"),  # 신규 보호 엔드포인트
     path(
