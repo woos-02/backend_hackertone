@@ -126,7 +126,7 @@ class CouponListView(ListCreateAPIView):
         request_serializer = self.get_serializer_class()(data=request.data, context={'request': request, 'couponbook': couponbook})
         request_serializer.is_valid(raise_exception=True)
         instance = self.perform_create(request_serializer)
-        response_serializer = CouponDetailResponseSerializer(instance)
+        response_serializer = CouponDetailResponseSerializer(instance, context={'request': request, 'couponbook': couponbook})
         headers = self.get_success_headers(request_serializer.data)
         return Response(response_serializer.data, status=status.HTTP_201_CREATED, headers=headers)
     
