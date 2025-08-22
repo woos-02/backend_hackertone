@@ -34,6 +34,7 @@ dependencies = [
 [project.optional-dependencies]
 prod = [
     "cryptography>=45.0.6",
+    "django-storages[s3]==1.14.6",
 ]
 
 [dependency-groups]
