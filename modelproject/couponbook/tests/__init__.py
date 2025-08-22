@@ -1,2 +1,2 @@
+from .apitests import *
 from .modeltests import *
-from .viewtests import *
