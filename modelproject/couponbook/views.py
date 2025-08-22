@@ -17,6 +17,7 @@ from .curation.utils import AICurator, UserStatistics
 from .filters import CouponFilter, CouponTemplateFilter
 from .models import *
 from .models import CouponTemplate, Place
+from .permissions import IsMyCouponBook, IsMyCoupon
 from .serializers import *
 from .serializers import CouponTemplateCreateSerializer, PlaceSerializer
 
@@ -51,7 +52,7 @@ class CouponBookDetailView(RetrieveAPIView):
     """ 
     serializer_class = CouponBookResponseSerializer
     authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsMyCouponBook]
 
     queryset= CouponBook.objects.all()
 
@@ -97,7 +98,7 @@ class CouponListView(ListCreateAPIView):
     """
     serializer_class = CouponListResponseSerializer
     authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsMyCouponBook]
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
     filterset_class = CouponFilter
     ordering_fields = ['id', 'saved_at', 'stamp_counts']
@@ -151,7 +152,7 @@ class CouponDetailView(RetrieveAPIView):
     """
     serializer_class = CouponDetailResponseSerializer
     authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsMyCoupon]
 
     queryset = Coupon.objects.all()
     lookup_url_kwarg = 'coupon_id'
@@ -357,7 +358,7 @@ class StampListView(ListCreateAPIView):
     스탬프 목록 조회 및 스탬프 적립(등록)과 관련된 뷰입니다.
     """
     authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsMyCoupon]
 
     def get_queryset(self):
         """
