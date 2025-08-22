@@ -29,10 +29,10 @@ class CouponTestCase(TestCase):
         
         # 법정동 주소 생성
         legal_district_dict = {
-            'code_in_law': '00000001',
-            'province': '서울',
-            'city': '구',
-            'district': '서남북동',
+            'code_in_law': '1123011000',
+            'province': '서울특별시',
+            'city': '동대문구',
+            'district': '이문동',
         }
         legal_district = LegalDistrict.objects.create(**legal_district_dict)
         
@@ -131,7 +131,7 @@ class PlaceTestCase(TestCase):
             'code_in_law': '4111710100',
             'province': '경기도',
             'city': '수원시영통구',
-            'district': '이문동',
+            'district': '매탄동',
         }
 
         LegalDistrict.objects.create(**legal_district_1)
@@ -167,7 +167,7 @@ class PlaceTestCase(TestCase):
     def test_false_place_lat_and_lng(self):
         legal_district = LegalDistrict.objects.get(code_in_law='1117010500')
         place_dict = {
-            'name': '디즈니랜드 서울',
+            'name': '디즈니랜드',
             'address_district': legal_district,
             'address_rest': '1234',
             'image_url': 'aaa.jpg',
@@ -180,13 +180,14 @@ class PlaceTestCase(TestCase):
         }
 
         place = Place.objects.create(**place_dict)
+        self.assertTrue(isinstance(place, Place), "예외 처리가 제대로 되지 않았음!")
     
     @print_success_message("가게 등록 시 이름이 중복된 가게의 위도, 경도가 제대로 처리되는지 테스트")
     def test_not_unique_place_name_lat_lng(self):
-        # 키워드 군포해물탕 vs 군포해물탕 화성 위도와 경도 비교
-        legal_district = LegalDistrict.objects.get(code_in_law='1123011000')
+        # 키워드 군포해물탕 vs 군포해물탕 영통 위도와 경도 비교
+        legal_district = LegalDistrict.objects.get(code_in_law='4111710100')
         place_dict = {
-            'name': '행복한한끼',
+            'name': '군포해물탕',
             'address_district': legal_district,
             'address_rest': '1234',
             'image_url': 'aaa.jpg',
@@ -201,7 +202,7 @@ class PlaceTestCase(TestCase):
         lat, lng = place.lat, place.lng
 
         client = KakaoMapAPIClient()
-        kakaomap_place = client.find_place_by_keyword("군포해물탕 화성")
+        kakaomap_place = client.find_place_by_keyword("군포해물탕 영통")
         t_lat, t_lng = kakaomap_place.get_latlng()
 
         # place의 예상되는 위도, 경도: place의 address_district 정보를 추가로 활용해서 검색된 값
