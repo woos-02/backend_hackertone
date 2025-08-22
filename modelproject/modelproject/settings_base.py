@@ -184,7 +184,7 @@ STATIC_LOCATION = config("STATIC_LOCATION", "static-dev")
 STORAGES = {
     # 업로드 미디어(비공개) → presigned URL 로 접근
     "default": {
-        "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
+        "BACKEND": "storages.backends.s3.S3Storage",
         "OPTIONS": {
             "bucket_name": AWS_STORAGE_BUCKET_NAME,
             "region_name": AWS_S3_REGION_NAME,
@@ -194,7 +194,7 @@ STORAGES = {
     },
     # 정적 파일(공개 읽기) → collectstatic 시 S3로 업로드
     "staticfiles": {
-        "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
+        "BACKEND": "storages.backends.s3.S3Storage",
         "OPTIONS": {
             "bucket_name": AWS_STORAGE_BUCKET_NAME,
             "region_name": AWS_S3_REGION_NAME,
