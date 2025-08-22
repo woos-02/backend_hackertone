@@ -52,7 +52,7 @@ class CouponBookDetailView(RetrieveAPIView):
     """ 
     serializer_class = CouponBookResponseSerializer
     authentication_classes = [JWTAuthentication]
-    permission_classes = [IsMyCouponBook]
+    permission_classes = [IsAuthenticated] # get_object에서 본인의 쿠폰북을 가져오기 때문에 IsAuthenticated 사용
 
     queryset= CouponBook.objects.all()
 
