@@ -4,6 +4,7 @@ from django.db.models import Q, Value, CharField
 from django.db.models.functions import Concat
 from django.utils import timezone
 
+
 from .models import Coupon, CouponTemplate
 
 
@@ -27,6 +28,20 @@ class CouponFilter(filters.FilterSet):
     is_open = filters.BooleanFilter(method="filter_is_open")
     is_expired = filters.BooleanFilter(method="filter_is_expired")
 
+    def filter_already_own(self, queryset, name, value):
+        """
+        이미 보유한 쿠폰인지 필터링하는 메소드입니다.
+        """
+        if value:
+            return queryset.filter(coupons__couponbook__user=self.request.user)
+        return queryset
+    
+    def filter_is_open(self, queryset, name, value):
+        if value:
+            return queryset.filter(place__opens_at__lte=datetime.now().time(),
+                                   place__closes_at__gte=datetime.now().time())
+        return queryset
+    
     class Meta:
         model = Coupon
         fields = ["address", "district", "name", "is_open", "is_expired"]
