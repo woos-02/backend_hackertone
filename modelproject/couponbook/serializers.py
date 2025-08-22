@@ -457,6 +457,10 @@ class CouponListRequestSerializer(serializers.ModelSerializer):
                     "tel": "0507-1361-0962",
                     "owner": 1,
                 },
+                "reward_info": {
+                    "amount": 10,
+                    "reward": "음료수 1잔 무료"
+                },
                 "max_stamps": 10,
                 "current_stamps": 5,
                 "is_favorite": True,
@@ -476,6 +480,7 @@ class CouponListResponseSerializer(serializers.ModelSerializer):
 
     coupon_url = serializers.SerializerMethodField()
     place = serializers.SerializerMethodField()
+    reward_info = serializers.SerializerMethodField()
     max_stamps = serializers.SerializerMethodField()
     current_stamps = serializers.SerializerMethodField()
     is_favorite = serializers.SerializerMethodField()
@@ -501,6 +506,13 @@ class CouponListResponseSerializer(serializers.ModelSerializer):
         original_template = obj.original_template
         place = original_template.place
         return PlaceDetailResponseSerializer(place).data
+    
+    def get_reward_info(self, obj: Coupon) -> RewardsInfoDetailSerializer:
+        """
+        해당 쿠폰의 리워드 정보입니다.
+        """
+        original_template = obj.original_template
+        return RewardsInfoDetailSerializer(original_template.reward_info).data
     
     def get_max_stamps(self, obj: Coupon) -> int:
         """
@@ -581,6 +593,10 @@ class CouponListResponseSerializer(serializers.ModelSerializer):
                     "tel": "0507-1361-0962",
                     "owner": 1,
                 },
+                "reward_info": {
+                    "amount": 10,
+                    "reward": "음료수 1잔 무료"
+                },
                 "max_stamps": 10,
                 "current_stamps": 5,
                 "stamps": [
@@ -592,6 +608,7 @@ class CouponListResponseSerializer(serializers.ModelSerializer):
                 "is_favorite": True,
                 "favorite_id": 1,
                 "is_completed": False,
+                "days_remaining": 3,
                 "couponbook": 1,
             },
         )
@@ -604,12 +621,14 @@ class CouponDetailResponseSerializer(serializers.ModelSerializer):
 
     saved_at = serializers.DateTimeField(DATETIME_FORMAT)
     place = serializers.SerializerMethodField()
+    reward_info = serializers.SerializerMethodField()
     max_stamps = serializers.SerializerMethodField()
     current_stamps = serializers.SerializerMethodField()
     stamps = StampListResponseSerializer(many=True)
     is_favorite = serializers.SerializerMethodField()
     favorite_id = serializers.SerializerMethodField()
     is_completed = serializers.SerializerMethodField()
+    days_remaining = serializers.SerializerMethodField()
 
     class Meta:
         model = Coupon
@@ -620,6 +639,13 @@ class CouponDetailResponseSerializer(serializers.ModelSerializer):
         place = original_template.place
         serializer = PlaceDetailResponseSerializer(place)
         return serializer.data
+    
+    def get_reward_info(self, obj: Coupon) -> RewardsInfoDetailSerializer:
+        """
+        해당 쿠폰의 리워드 정보입니다.
+        """
+        original_template = obj.original_template
+        return RewardsInfoDetailSerializer(original_template.reward_info).data
     
     def get_max_stamps(self, obj: Coupon) -> int:
         """
@@ -669,6 +695,15 @@ class CouponDetailResponseSerializer(serializers.ModelSerializer):
         current_stamps: int = Stamp.objects.filter(coupon=obj).count()
 
         return max_stamps == current_stamps
+    
+    def get_days_remaining(self, obj: Coupon) -> int | None:
+        """
+        해당 쿠폰의 유효기간이 며칠 남아 있는지를 의미합니다.
+        """
+        valid_until = obj.original_template.valid_until
+        if not valid_until:
+            return None
+        return (valid_until - now()).days
 
 
 @extend_schema_serializer(
