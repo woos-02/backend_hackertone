@@ -304,7 +304,16 @@ class CouponTemplateListView(generics.ListCreateAPIView):
         if place is None:
             raise ValidationError({"detail": "등록된 가게가 없습니다. 먼저 가게를 등록해주세요."})
         serializer.save(place=place)
-
+        
+    def get_queryset(self):
+        """
+        FK(Place -> LegalDistrict)를 직렬화에서 접근하므로
+        select_related로 한 번에 조인해 안전/성능을 확보합니다.
+        """
+        # 부모에 get_queryset이 있으면 사용, 없으면 기본 queryset 사용
+        qs = super().get_queryset() if hasattr(super(), "get_queryset") else self.queryset
+        # Place 및 LegalDistrict 조인
+        return qs.select_related("place", "place__address_district")
 
 @extend_schema_view(
     get=extend_schema(

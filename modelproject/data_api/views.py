@@ -345,3 +345,16 @@ class LocationHierarchyAPIView(APIView):
         if isinstance(raw, dict) and "hierarchy" in raw:
             raw = raw["hierarchy"]
         return Response(raw, status=status.HTTP_200_OK)
+
+from rest_framework.decorators import api_view, parser_classes
+from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.response import Response
+from django.core.files.storage import default_storage
+
+@api_view(["POST"])
+@parser_classes([MultiPartParser, FormParser])
+def upload_image(request):
+    f = request.FILES["file"]            # form-data key: file
+    path = default_storage.save(f"uploads/{f.name}", f)
+    url = default_storage.url(path)      # presigned URL(만료됨)
+    return Response({"path": path, "url": url})
