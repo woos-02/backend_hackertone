@@ -125,8 +125,14 @@ class Place(models.Model):
         """
         위도와 경도 정보를 카카오맵 API를 이용해서 계산해서 저장합니다.
         """
-        lat, lng = get_place_latlng(self.name)
-        self.lat, self.lng = lat, lng
-        
-        super().save(*args, **kwargs)
+        keyword = self.name
+        address_district = f"{self.address_district.province} {self.address_district.city} {self.address_district.district}"
 
+        latlng = get_place_latlng(f"{address_district} {keyword}")
+        
+        if latlng:
+            self.lat, self.lng = latlng
+            
+            super().save(*args, **kwargs)
+        
+        return
