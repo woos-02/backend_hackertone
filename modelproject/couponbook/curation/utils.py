@@ -41,7 +41,18 @@ class UserStatistics:
         """
         time_format = self.time_format
         return time.strftime(time_format)
-            
+
+    def extract_legal_district(self, legal_district: LegalDistrict):
+        """
+        가게의 법정동 주소 인스턴스를 받아서, 광역시 ~ 법정동 주소를 연결한 문자열을 반환합니다.
+        """
+        return f"{legal_district.province} {legal_district.city} {legal_district.district}"
+    
+    def extract_address(self, place: Place):
+        """
+        가게 인스턴스를 받아서, 가게의 주소를 문자열로 반환합니다.
+        """
+        return f"{self.extract_legal_district(place.address_district)} {place.address_rest}"
     
     def extract_place_info(self, place: Place) -> dict[str, str]:
         """
@@ -49,7 +60,7 @@ class UserStatistics:
         """
         place_info = {}
         place_info['name'] = place.name
-        place_info['address'] = place.address
+        place_info['address'] = self.extract_address(place)
         return place_info
     
     def calc_current_stamps(self, coupon: Coupon) -> int:
