@@ -47,10 +47,9 @@ class CouponTemplate(models.Model):
     valid_until = models.DateTimeField(null=True, blank=True, help_text="쿠폰의 유효기간입니다.")
     first_n_persons = models.PositiveIntegerField(default=0, help_text="선착순 몇명까지 쿠폰이 발급한지를 의미합니다.")
     is_on = models.BooleanField(default=True, help_text="게시 중/비공개 여부를 불리언으로 나타냅니다.")
-    # Todo: views 시리얼라이저 필드로 이동
-    views = models.PositiveIntegerField(default=0, help_text="조회수를 의미합니다.")
-    # 쿠폰 템플릿이 어느 가게에 속하는지 명시적으로 연결합니다.
     created_at = models.DateTimeField(auto_now_add=True, help_text="점주가 쿠폰 템플릿을 등록한 날짜와 시간입니다.")
+    
+    # 쿠폰 템플릿이 어느 가게에 속하는지 명시적으로 연결합니다.
     place = models.ForeignKey("couponbook.Place",
                               related_name='coupon_templates',
                               on_delete=models.CASCADE,
@@ -106,7 +105,7 @@ class Place(models.Model):
     가게 모델입니다.
     """
     name = models.CharField(max_length=20, help_text="가게 이름입니다.")
-    address_district = models.OneToOneField(LegalDistrict,
+    address_district = models.ForeignKey(LegalDistrict,
                                             on_delete=models.CASCADE,
                                             related_name='place',
                                             help_text="가게의 법정동 부분까지의 주소입니다. 예) 서울특별시 동대문구 이문동")
@@ -116,7 +115,7 @@ class Place(models.Model):
     image_url = models.URLField(help_text="가게의 이미지가 담겨 있는 URL입니다.")
     opens_at = models.TimeField(help_text="영업 시작 시간입니다.")
     closes_at = models.TimeField(help_text="영업 종료 시간입니다.")
-    # todo: 영업하는 요일 필드 추가
+    tags = models.CharField(max_length=20, blank=True, null=True, help_text="가게의 태그들입니다. 콤마로 구분해서 입력하세요.")
     last_order = models.TimeField(help_text="라스트오더 시간입니다.")
     tel = models.CharField(max_length=20, help_text="가게 전화번호입니다.")
     # 점주와 가게를 1:1로 연결

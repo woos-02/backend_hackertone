@@ -161,6 +161,7 @@ class RewardsInfoDetailSerializer(serializers.ModelSerializer):
                 "lat": "37.21412582140",
                 "lng": "127.3432032904",
                 "image_url": "http://localhost:8000",
+                "tags": "카페",
                 "tel": "0507-1361-0962",
                 "owner": 1,
             },
@@ -224,6 +225,7 @@ class PlaceCreateSerializer(serializers.ModelSerializer):
                     "lat": "37.21412582140",
                     "lng": "127.3432032904",
                     "image_url": "http://localhost:8000",
+                    "tags": "카페",
                     "tel": "0507-1361-0962",
                     "owner": 1,
                 },
@@ -238,8 +240,6 @@ class PlaceCreateSerializer(serializers.ModelSerializer):
                 "created_at": "2025-08-18 21:30",
                 "first_n_persons": 50,
                 "is_on": True,
-                "views": 8,
-
             },
         )
     ]
@@ -309,6 +309,7 @@ class CouponTemplateListSerializer(serializers.ModelSerializer):
                     "lat": "37.21412582140",
                     "lng": "127.3432032904",
                     "image_url": "http://localhost:8000",
+                    "tags": "카페",
                     "tel": "0507-1361-0962",
                     "owner": 1,
                 },
@@ -357,7 +358,7 @@ class CouponTemplateDetailSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = CouponTemplate
-        exclude = ["is_on", "views"]
+        exclude = ["is_on"]
 
 
 
@@ -373,7 +374,7 @@ class CouponTemplateCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = CouponTemplate
         # place 필드는 뷰에서 처리하므로 제외
-        exclude = ["id", "place", "views", "created_at"]
+        exclude = ["id", "place", "created_at"]
 
     def create(self, validated_data):
         reward = validated_data.pop("reward_info")  # required=True 이므로 존재 보장
@@ -452,6 +453,7 @@ class CouponListRequestSerializer(serializers.ModelSerializer):
                     "lat": "37.21412582140",
                     "lng": "127.3432032904",
                     "image_url": "http://localhost:8000",
+                    "tags": "카페",
                     "tel": "0507-1361-0962",
                     "owner": 1,
                 },
@@ -575,6 +577,7 @@ class CouponListResponseSerializer(serializers.ModelSerializer):
                     "lat": "37.21412582140",
                     "lng": "127.3432032904",
                     "image_url": "http://localhost:8000",
+                    "tags": "카페",
                     "tel": "0507-1361-0962",
                     "owner": 1,
                 },
@@ -735,6 +738,7 @@ class FavoriteCouponListRequestSerializer(serializers.ModelSerializer):
                         "lat": "37.21412582140",
                         "lng": "127.3432032904",
                         "image_url": "http://localhost:8000",
+                        "tags": "카페",
                         "tel": "0507-1361-0962",
                         "owner": 1,
                     },
