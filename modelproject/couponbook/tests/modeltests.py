@@ -5,14 +5,14 @@ from couponbook.models import *
 from django.test import TestCase
 from django.utils.timezone import now
 
-from .decorators import print_success_message_decorator
+from .decorators import print_success_message
 
 
 # 모델 관련 테스트케이스
 # 쿠폰북 관련 테스트케이스
 class CouponBookTestCase(TestCase):
     # 유저 생성 시 연관된 쿠폰북 생기는지?
-    @print_success_message_decorator("유저 생성 시 연관된 쿠폰북 생성 테스트")
+    @print_success_message("유저 생성 시 연관된 쿠폰북 생성 테스트")
     def test_user_with_couponbook(self):
         user = User.objects.create(username='test', password='1234')
         self.assertEqual(CouponBook.objects.filter(user=user).exists(), True)
@@ -72,7 +72,7 @@ class CouponTestCase(TestCase):
         return super().setUp()
     
     # 존재하는 쿠폰 삭제하였을 경우 영수증 데이터와 스탬프 연결 해제되는지?
-    @print_success_message_decorator("존재하는 쿠폰 삭제 시 영수증 데이터와 스탬프 연결 해제 테스트")
+    @print_success_message("존재하는 쿠폰 삭제 시 영수증 데이터와 스탬프 연결 해제 테스트")
     def test_coupon_delete_and_receipts_and_stamps(self):
         user, couponbook, original_template = self.test_context.values()
         
