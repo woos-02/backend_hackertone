@@ -1,9 +1,7 @@
-from typing import Any
 import django_filters as filters
 from django.db.models import Q, Value, CharField
 from django.db.models.functions import Concat
 from django.utils import timezone
-
 
 from .models import Coupon, CouponTemplate
 
@@ -46,7 +44,7 @@ class CouponFilter(filters.FilterSet):
         model = Coupon
         fields = ["address", "district", "name", "is_open", "is_expired"]
 
-    def filter_address(self, queryset, name: str, value: str) -> Any:
+    def filter_address(self, queryset, name: str, value: str):
         if not value:
             return queryset
         q = queryset.annotate(
@@ -63,7 +61,7 @@ class CouponFilter(filters.FilterSet):
         )
         return q.filter(full_addr__icontains=value)
 
-    def filter_is_open(self, queryset, name: str, value: bool) -> Any:
+    def filter_is_open(self, queryset, name: str, value: bool):
         if value is None:
             return queryset
         now = timezone.localtime().time()
@@ -73,7 +71,7 @@ class CouponFilter(filters.FilterSet):
         )
         return queryset.filter(cond) if value else queryset
 
-    def filter_is_expired(self, queryset, name: str, value: bool) -> Any:
+    def filter_is_expired(self, queryset, name: str, value: bool):
         if value is None:
             return queryset
         now_dt = timezone.now()
@@ -123,14 +121,14 @@ class CouponTemplateFilter(filters.FilterSet):
         )
         return q.filter(full_addr__icontains=value)
 
-    def filter_is_open(self, queryset, name: str, value: bool) -> Any:
+    def filter_is_open(self, queryset, name: str, value: bool):
         if value is None:
             return queryset
         now = timezone.localtime().time()
         cond = Q(place__opens_at__lte=now) & Q(place__last_order__gt=now)
         return queryset.filter(cond) if value else queryset
 
-    def filter_already_own(self, queryset, name: str, value: bool) -> Any:
+    def filter_already_own(self, queryset, name: str, value: bool):
         # 미입력 시 필터 미적용
         if value is None:
             return queryset
