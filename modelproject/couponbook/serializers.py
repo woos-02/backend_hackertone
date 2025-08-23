@@ -296,7 +296,7 @@ class CouponTemplateListSerializer(serializers.ModelSerializer):
         saved_coupons = Coupon.objects.filter(original_template=obj)
         uses = 0
         for coupon in saved_coupons:
-            uses += coupon.stamps.count()
+            uses += coupon.stamps.count() if hasattr(coupon, 'stamps') else 0
         return uses
 
     class Meta:
@@ -362,8 +362,10 @@ class CouponTemplateDetailSerializer(serializers.ModelSerializer):
         """
         현재 기준으로 쿠폰을 발급받을 수 있는 인원 수입니다.
         """
-        coupons = obj.coupons
-        return max(0, obj.first_n_persons - coupons.count()) # current_n_remaining 이 음수가 될 수 있어 0으로 바닥 고정
+        if hasattr(obj, 'coupons'):
+            return max(0, obj.first_n_persons - obj.coupons.count()) # current_n_remaining 이 음수가 될 수 있어 0으로 바닥 고정
+        
+        return obj.first_n_persons
     
     def get_already_owned(self, obj: CouponTemplate) -> bool:
         """
@@ -540,21 +542,27 @@ class CouponListResponseSerializer(serializers.ModelSerializer):
         place = original_template.place
         return PlaceDetailResponseSerializer(place).data
     
-    def get_reward_info(self, obj: Coupon) -> RewardsInfoDetailSerializer:
+    def get_reward_info(self, obj: Coupon) -> RewardsInfoDetailSerializer | None:
         """
         해당 쿠폰의 리워드 정보입니다.
         """
         original_template = obj.original_template
-        return RewardsInfoDetailSerializer(original_template.reward_info).data
+
+        if hasattr(original_template, 'reward_info'):
+            return RewardsInfoDetailSerializer(original_template.reward_info).data
+        return None
     
     def get_max_stamps(self, obj: Coupon) -> int:
         """
         해당 쿠폰을 완성하는 데에 필요한 스탬프 개수입니다.
         """
         original_template: CouponTemplate = obj.original_template
-        reward_info: RewardsInfo = original_template.reward_info
-        max_stamps: int = reward_info.amount
-        return max_stamps
+
+        if hasattr(original_template, 'reward_info'):
+            reward_info: RewardsInfo = original_template.reward_info
+            max_stamps: int = reward_info.amount
+            return max_stamps
+        return 0
     
     def get_current_stamps(self, obj: Coupon) -> int:
         """
@@ -578,11 +586,13 @@ class CouponListResponseSerializer(serializers.ModelSerializer):
         해당 쿠폰이 완성되었는지를 의미합니다.
         """
         original_template: CouponTemplate = obj.original_template
-        reward_info: RewardsInfo = original_template.reward_info
-        max_stamps: int = reward_info.amount
-        current_stamps: int = Stamp.objects.filter(coupon=obj).count()
+        if hasattr(original_template, 'reward_info'):
+            reward_info: RewardsInfo = original_template.reward_info
+            max_stamps: int = reward_info.amount
+            current_stamps: int = Stamp.objects.filter(coupon=obj).count()
 
-        return max_stamps == current_stamps
+            return max_stamps == current_stamps
+        return False
 
     def get_is_expired(self, obj: Coupon) -> bool:
         """
@@ -678,16 +688,22 @@ class CouponDetailResponseSerializer(serializers.ModelSerializer):
         해당 쿠폰의 리워드 정보입니다.
         """
         original_template = obj.original_template
-        return RewardsInfoDetailSerializer(original_template.reward_info).data
+
+        if hasattr(original_template, 'reward_info'):
+            return RewardsInfoDetailSerializer(original_template.reward_info).data
+        return None
     
     def get_max_stamps(self, obj: Coupon) -> int:
         """
         해당 쿠폰을 완성하는 데에 필요한 스탬프 개수입니다.
         """
         original_template: CouponTemplate = obj.original_template
-        reward_info: RewardsInfo = original_template.reward_info
-        max_stamps: int = reward_info.amount
-        return max_stamps
+
+        if hasattr(original_template, 'reward_info'):
+            reward_info: RewardsInfo = original_template.reward_info
+            max_stamps: int = reward_info.amount
+            return max_stamps
+        return 0
     
     def get_current_stamps(self, obj: Coupon) -> int:
         """
@@ -723,11 +739,13 @@ class CouponDetailResponseSerializer(serializers.ModelSerializer):
         해당 쿠폰이 완성되었는지를 의미합니다.
         """
         original_template: CouponTemplate = obj.original_template
-        reward_info: RewardsInfo = original_template.reward_info
-        max_stamps: int = reward_info.amount
-        current_stamps: int = Stamp.objects.filter(coupon=obj).count()
+        if hasattr(original_template, 'reward_info'):
+            reward_info: RewardsInfo = original_template.reward_info
+            max_stamps: int = reward_info.amount
+            current_stamps: int = Stamp.objects.filter(coupon=obj).count()
 
-        return max_stamps == current_stamps
+            return max_stamps == current_stamps
+        return False
     
     def get_days_remaining(self, obj: Coupon) -> int | None:
         """
