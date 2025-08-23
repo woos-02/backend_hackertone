@@ -7,7 +7,7 @@ class IsMyCouponBook(BasePermission):
     """
     본인의 쿠폰북인지 확인합니다.
 
-    사용되는 뷰: CouponListView (permission)
+    사용되는 뷰: CouponListView (permission), FavoriteCouponListView (permission)
     """
 
     def has_object_permission(self, request, view, obj: CouponBook) -> bool:
@@ -44,3 +44,8 @@ class IsMyCoupon(BasePermission):
         coupon_id = view.kwargs['coupon_id']
         coupon = Coupon.objects.get(id=coupon_id)
         return self.has_object_permission(request, view, coupon)
+
+class IsMyCouponForFavorite(BasePermission):
+    """
+    즐겨찾기 쿠폰에 사용되는 메소드로
+    """

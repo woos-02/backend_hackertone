@@ -203,7 +203,7 @@ class FavoriteCouponListView(ListCreateAPIView):
     현재 쿠폰북에 등록되어 있는 즐겨찾기 쿠폰들을 조회하는 뷰입니다.
     """
     authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsMyCouponBook]
 
     def get_serializer_class(self):
         if self.request.method == 'GET':
