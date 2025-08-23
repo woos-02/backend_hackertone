@@ -290,7 +290,6 @@ class ResponseTestCase(APITestCase):
         self.assertEqual(r.status_code, 201, "쿠폰 등록에 실패한 것 같습니다...")
 
         r = self.client.post('/couponbook/coupons/1/stamps/', {'receipt': f'{0:08d}'})
-        print("응답 데이터ㅓㅓㅓㅓㅓㅓㅓㅓ", r.data)
         self.assertEqual(r.status_code, 201, "스탬프 적립에 실패한 것 같습니다...")
 
         self.assertEqual('current_stamps' in r.data.keys(), f"필요한 데이터가 빠졌습니다! {key}")
