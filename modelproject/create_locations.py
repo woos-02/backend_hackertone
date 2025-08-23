@@ -1,154 +1,103 @@
 """
-국토교통부 법정동 CSV -> JSON(locations.json) 변환기
+국토교통부 '전국 법정동' CSV를 읽어
+프론트 셀렉트박스(시/도 → 시/군/구 → 읍/면/동) 구조에 딱 맞는 JSON으로 변환합니다.
 
-적용:
-- 말소/삭제/폐지 일자 있는 행 제외
-- '리' 단위 제거(읍/면/동이 비면 스킵)
-- 동일 시/군/구 내 '동명' 중복 제거(동명이 여러 코드로 중복되면 번호가 작은 코드 1개만 채택)
-- 출력 JSON: (루트)/data/locations.json + (루트)/modelproject/data/locations.json
-
-출력 스키마 예:
+출력 예:
 {
-  "hierarchy": {
-    "서울특별시": {
-      "종로구": [
-        {"district": "가회동", "code": "1111010100"},
-        ...
-      ],
-      ...
-    },
-    ...
+  "서울특별시": {
+    "종로구": [
+      {"name": "청운동", "code": "1111010100"},
+      {"name": "신교동", "code": "1111010200"}
+    ],
+    "중구": [ ... ]
   },
-  "index": [
-    {"province": "서울특별시", "city": "종로구", "district": "가회동", "code": "1111010100"},
-    ...
-  ]
+  "부산광역시": { ... }
 }
 """
-
+from __future__ import annotations
+import argparse, csv, json, os
 from pathlib import Path
-import csv, json
-from collections import defaultdict
+from typing import Dict, List, Tuple
 
-BASE_DIR = Path(__file__).resolve().parent
-DATA_DIR = BASE_DIR / "data"
-
-# 출력 대상(로컬/배포 둘 다 반영)
-OUTPUTS = [
-    BASE_DIR / "data" / "locations.json",                  # (루트)/data/locations.json
-    BASE_DIR / "modelproject" / "data" / "locations.json", # modelproject/modelproject/data/locations.json
-]
-
-# CSV 검색(파일명 조금 달라도 찾게)
-def find_csv_path() -> Path:
-    candidates = [
-        DATA_DIR / "국토교통부_전국 법정동_20250415.csv",
-        DATA_DIR / "국토교통부_전국_법정동_20250415.csv",
-    ] + list(DATA_DIR.glob("국토교통부*법정동*2025*.csv")) + list(DATA_DIR.glob("국토교통부*법정동*.csv"))
-    for p in candidates:
-        if p.exists():
-            return p
-    raise FileNotFoundError(f"CSV가 없습니다: {DATA_DIR}/(국토교통부*법정동*.csv)")
-
-# 헤더 alias
-ALIAS = {
-    "법정동코드": ["법정동코드"],
-    "시도명":    ["시도명", "시도"],
-    "시군구명":  ["시군구명", "시군구"],
-    "읍면동명":  ["읍면동명", "읍면동"],
-    "리명":      ["리명", "리"],
-    "말소일자":  ["말소일자", "삭제일자", "폐지일자"],
-}
-
-def get(row, key):
-    for cand in ALIAS[key]:
-        if cand in row:
-            return (row[cand] or "").strip()
-    return ""
-
-def is_deleted(row):
-    for cand in ALIAS["말소일자"]:
-        if cand in row and (row[cand] or "").strip():
-            return True
-    return False
-
-def norm_code(code: str) -> str:
-    """
-    법정동코드는 보통 10자리. 혹시 공백/하이픈 등 섞여오면 정리.
-    """
-    c = "".join(ch for ch in str(code) if ch.isdigit())
-    return c.zfill(10)[:10] if c else ""
-
-def open_csv(path: Path):
-    # 인코딩 자동 감지: BOM → UTF-8 → CP949
-    for enc in ("utf-8-sig", "utf-8", "cp949"):
+def read_csv_rows(path: Path) -> List[dict]:
+    for enc in ("utf-8", "cp949"):
         try:
-            f = open(path, "r", encoding=enc, newline="")
-            _ = f.read(2048); f.seek(0)
-            print(f"[INFO] CSV encoding detected: {enc}")
-            return f
+            with path.open("r", encoding=enc, newline="") as f:
+                return list(csv.DictReader(f))
         except UnicodeDecodeError:
             continue
-    return open(path, "r", newline="")
+    raise UnicodeDecodeError("csv", b"", 0, 1, "encoding failed")
+
+def normalize_and_filter(rows: List[dict]) -> List[Tuple[str,str,str,str]]:
+    out: List[Tuple[str,str,str,str]] = []
+    for r in rows:
+        prov = (r.get("시도명") or "").strip()
+        city = (r.get("시군구명") or "").strip()
+        dong = (r.get("읍면동명") or "").strip()
+        ri   = (r.get("리명") or "").strip()
+        code = (r.get("법정동코드") or "").strip()
+        deleted = (r.get("삭제일자") or "").strip()
+
+        if deleted: continue      # 폐지 제외
+        if ri:      continue      # '리' 제외
+        if not dong: continue     # 요약행 제외
+        if "소계" in dong: continue
+        if not prov or not city or not code: continue
+
+        out.append((prov, city, dong, code))
+    return out
+
+def build_nested(rows: List[Tuple[str,str,str,str]]) -> Dict[str, Dict[str, List[dict]]]:
+    nested: Dict[str, Dict[str, List[dict]]] = {}
+    rows_sorted = sorted(rows, key=lambda x: (x[0], x[1], x[2]))
+    seen = set()
+    for prov, city, dong, code in rows_sorted:
+        key = (prov, city, dong)
+        if key in seen: 
+            continue
+        seen.add(key)
+        nested.setdefault(prov, {})
+        nested[prov].setdefault(city, [])
+        nested[prov][city].append({"name": dong, "code": str(code)})
+    for prov in nested:
+        for city in nested[prov]:
+            nested[prov][city].sort(key=lambda d: d["name"])
+    return nested
 
 def main():
-    csv_path = find_csv_path()
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--csv",
+        default=os.path.join(os.path.expanduser("~"), "Downloads", "국토교통부_전국 법정동_20250415.csv"),
+        help="국토교통부 CSV 파일 경로"
+    )
+    parser.add_argument(
+        "--out",
+        default=None,
+        help="출력 JSON 경로(기본: 프로젝트 루트/modelproject/data/locations.json)"
+    )
+    args = parser.parse_args()
 
-    # data[시도][시군구] -> list[{"district": str, "code": str}]
-    data = defaultdict(lambda: defaultdict(list))
-    # seen[시도][시군구][동명] -> 채택한 code (번호가 작은 걸 유지)
-    seen = defaultdict(lambda: defaultdict(dict))
-    index = []  # 평탄화 인덱스
+    csv_path = Path(args.csv).resolve()
+    if not csv_path.exists():
+        raise FileNotFoundError(f"CSV 파일을 찾을 수 없습니다: {csv_path}")
 
-    with open_csv(csv_path) as f:
-        sample = f.read(2048); f.seek(0)
-        try:
-            dialect = csv.Sniffer().sniff(sample)
-        except csv.Error:
-            dialect = csv.excel
-        reader = csv.DictReader(f, dialect=dialect)
+    base = Path(__file__).resolve().parent
+    out_path = Path(args.out).resolve() if args.out else \
+        (base / "modelproject" / "data" / "locations.json" if (base / "modelproject").exists()
+         else base / "data" / "locations.json")
+    out_path.parent.mkdir(parents=True, exist_ok=True)
 
-        for r in reader:
-            if is_deleted(r):
-                continue
+    nested = build_nested(normalize_and_filter(read_csv_rows(csv_path)))
+    with out_path.open("w", encoding="utf-8") as f:
+        json.dump(nested, f, ensure_ascii=False, indent=2)
 
-            code     = norm_code(get(r, "법정동코드"))
-            province = get(r, "시도명")
-            city     = get(r, "시군구명")
-            district = get(r, "읍면동명")
-            # '리'는 사용하지 않음: 읍/면/동이 비면 스킵
-            if not (province and city and district):
-                continue
-            if not code:
-                # 코드가 비면 스킵(원하면 나중에 None으로 채우는 로직으로 바꿔도 됨)
-                continue
-
-            chosen = seen[province][city].get(district)
-            if chosen is None or code < chosen:
-                # 더 작은 코드를 채택(동명이 여러 코드로 중복일 때 일관성 유지)
-                seen[province][city][district] = code
-
-        # seen을 data/index로 변환
-        for province, cities in seen.items():
-            for city, dmap in cities.items():
-                for district, code in dmap.items():
-                    data[province][city].append({"district": district, "code": code})
-                    index.append({"province": province, "city": city, "district": district, "code": code})
-
-    # 보기 좋게 정렬
-    for prov in data.values():
-        for c, lst in list(prov.items()):
-            prov[c] = sorted(lst, key=lambda x: (x["district"], x["code"]))
-    index.sort(key=lambda x: (x["province"], x["city"], x["district"], x["code"]))
-
-    payload = {"hierarchy": data, "index": index}
-
-    # 두 군데 모두 저장
-    for out_path in OUTPUTS:
-        out_path.parent.mkdir(parents=True, exist_ok=True)
-        with out_path.open("w", encoding="utf-8") as out:
-            json.dump(payload, out, ensure_ascii=False, indent=2)
-        print(f"[OK] JSON 파일 생성: {out_path}")
+    np = len(nested)
+    nc = sum(len(nested[p]) for p in nested)
+    nd = sum(len(nested[p][c]) for p in nested for c in nested[p])
+    print(f"[완료] {out_path} 저장")
+    print(f"  - 시/도: {np}개, 시/군/구: {nc}개, 읍/면/동: {nd}개")
 
 if __name__ == "__main__":
     main()
+
