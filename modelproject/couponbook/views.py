@@ -18,7 +18,7 @@ from .curation.utils import AICurator, UserStatistics
 from .filters import CouponFilter, CouponTemplateFilter
 from .models import *
 from .models import CouponTemplate, Place
-from .permissions import IsMyCoupon, IsMyCouponBook
+from .permissions import IsMyCoupon, IsMyCouponBook, IsMyCouponForFavoriteAdd
 from .serializers import *
 from .serializers import CouponTemplateCreateSerializer, PlaceSerializer
 
@@ -203,7 +203,7 @@ class FavoriteCouponListView(ListCreateAPIView):
     현재 쿠폰북에 등록되어 있는 즐겨찾기 쿠폰들을 조회하는 뷰입니다.
     """
     authentication_classes = [JWTAuthentication]
-    permission_classes = [IsMyCouponBook]
+    permission_classes = [IsMyCouponBook, IsMyCouponForFavoriteAdd]
 
     def get_serializer_class(self):
         if self.request.method == 'GET':

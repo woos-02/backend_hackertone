@@ -45,7 +45,25 @@ class IsMyCoupon(BasePermission):
         coupon = Coupon.objects.get(id=coupon_id)
         return self.has_object_permission(request, view, coupon)
 
-class IsMyCouponForFavorite(BasePermission):
+class IsMyCouponForFavoriteAdd(IsMyCouponBook):
     """
-    즐겨찾기 쿠폰에 사용되는 메소드로
+    즐겨찾기 쿠폰 등록에 사용되는 권한입니다.
     """
+
+    def has_object_permission(self, request, view, obj: Coupon | CouponBook) -> bool:
+        """
+        쿠폰 또는 쿠폰북 인스턴스에 연결된 쿠폰북의 유저와 요청의 유저를 비교합니다.
+        """
+        if isinstance(obj, Coupon):
+            return obj.couponbook.user == request.user
+        else:
+            return obj.user == request.user
+
+    def has_permission(self, request, view) -> bool:
+        if request.method == 'POST' and super().has_permission(request, view):
+            coupon_id = request.data['coupon']
+            coupon = Coupon.objects.get(id=coupon_id)
+
+            return self.has_object_permission(request, view, coupon)
+        
+        return super().has_permission(request, view)
