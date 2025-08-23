@@ -136,6 +136,17 @@ class FavoriteCouponTestCase(APITestCase):
         r = self.client.get('/couponbook/own-couponbook/')
         self.assertEqual(r.data['favorite_counts'], 0, "예상된 즐겨찾기 쿠폰 개수와 다릅니다. ({r.data['favorite_counts']}, 1)")
     
+    @print_success_message("본인이 소유하지 않은 쿠폰북의 즐겨찾기 쿠폰 목록을 열람 불가능한지 테스트")
+    def test_list_others_favorite_coupons(self):
+        
+        # 또다른 유저 생성 및 로그인
+        user2 = User.objects.create(username='test2', password='1234')
+        self.client.force_authenticate(user=user2)
+
+        # 유저 2가 유저 1의 즐겨찾기 쿠폰 열람 시도
+        r = self.client.get('/couponbook/couponbooks/1/favorites/')
+        self.assertEqual(r.status_code, 403, "쿠폰을 엿보기 당했습니다..")
+
     @print_success_message("본인이 소유하지 않은 쿠폰을 즐겨찾기 등록 불가능한지 테스트")
     def test_add_others_coupon_as_favorite(self):
 
