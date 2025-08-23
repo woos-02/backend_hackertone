@@ -144,6 +144,7 @@ class ResponseTestCase(APITestCase):
     필요한 데이터는 쿠폰북 디자인을 바탕으로 지정되었습니다. 다음의 규칙을 따릅니다.
     1) 연관 데이터, 같은 모델 내의 데이터는 최대한 묶습니다.
     2) 프론트의 편의를 위해 화면의 위 -> 아래 순서로 필드 순서를 지정합니다.
+    3) 최대한 기존의 변수명을 유지합니다. 프론트의 코드에 주는 영향을 최소화합니다.
 
     특히, 시리얼라이저 리팩토링에서 중요한 기준이 되는 테스트케이스입니다.
     """
@@ -220,7 +221,8 @@ class ResponseTestCase(APITestCase):
         """
         쿠폰 목록 조회가 필요한 데이터를 반환하고 있는지 테스트하는 테스트 메소드입니다.
 
-        필요한 데이터: 개별 쿠폰 url, 가게 이미지 url, 가게명, 리워드 정보, 현재 스탬프 개수, 남은 기간
+        필요한 데이터: 개별 쿠폰 url, 가게 정보, 리워드 정보, 현재 스탬프 개수, 남은 기간
+            - 가게 정보: 가게 이미지 url, 가게 이름
             - 리워드 정보: 완성을 위해 필요한 개수, 리워드
         """
         r = self.client.post('/couponbook/couponbooks/1/coupons/', {'original_template': 1})
@@ -229,9 +231,19 @@ class ResponseTestCase(APITestCase):
         r = self.client.get('/couponbook/couponbooks/1/coupons/')
         keys = r.data[0].keys()
 
-        for key in ('coupon_url', 'place_image_url', 'place_name',
-                    'reward_info', 'current_stamps', 'days_remaining'):
+        for key in ('coupon_url', 'place', 'reward_info',
+                    'current_stamps', 'days_remaining'):
             self.assertEqual(key in keys, True, f"필요한 데이터가 빠졌습니다! {key}")
+        
+        place_keys = r.data[0]['place'].keys()
+
+        for key in ('image_url', 'name'):
+            self.assertEqual(key in place_keys, True, f"필요한 데이터가 빠졌습니다! {key}")
+        
+        reward_info_keys = r.data[0]['reward_info'].keys()
+        
+        for key in ('amount', 'reward'):
+            self.assertEqual(key in reward_info_keys, True, f"필요한 데이터가 빠졌습니다! {key}")
     
     @print_success_message("단일 쿠폰 조회 시 필요한 데이터가 반환되는지 테스트")
     def test_coupon_detail_response(self):
@@ -249,7 +261,7 @@ class ResponseTestCase(APITestCase):
         keys = r.data.keys()
 
         for key in ('is_favorite', 'max_stamps', 'reward_info',
-                    'current_stamps', 'place_info'):
+                    'current_stamps', 'place'):
             self.assertEqual(key in keys, True, f"필요한 데이터가 빠졌습니다! {key}")
 
         # 리워드 정보에 대한 테스트
@@ -260,11 +272,11 @@ class ResponseTestCase(APITestCase):
             self.assertEqual(key in reward_info_keys, True, f"필요한 데이터가 빠졌습니다! {key}")
         
         # 가게 정보에 대한 테스트
-        place_info = r.data['place_info']
-        place_info_keys = place_info.keys()
+        place = r.data['place']
+        place_keys = place.keys()
 
         for key in ('image_url', 'address', 'opens_at', 'closes_at', 'last_order', 'tel'):
-            self.assertEqual(key in place_info_keys, True, f"필요한 데이터가 빠졌습니다! {key}")
+            self.assertEqual(key in place_keys, True, f"필요한 데이터가 빠졌습니다! {key}")
     
     @print_success_message("스탬프를 적립 시 필요한 데이터가 반환되는지 테스트")
     def test_stamp_add_response(self):
@@ -281,5 +293,103 @@ class ResponseTestCase(APITestCase):
 
         self.assertEqual('current_stamps' in r.data.keys(), f"필요한 데이터가 빠졌습니다! {key}")
     
-    # todo: 이미 완성된 쿠폰에 스탬프 적립되지 않는지 테스트
-    # todo: 기간 만료된 쿠폰에 스탬프 적립되지 않는지 테스트
+
+class StampTestCase(APITestCase):
+    def setUp(self):
+        """
+        스탬프 적립을 위해 필요한 가게, 영수증, 유저 등을 세팅합니다. 쿠폰 템플릿부터 테스트 메소드에서 생성합니다.
+        """
+
+        # 법정동 주소 생성
+        legal_district_dict = {
+            'code_in_law': '1123011000',
+            'province': '서울특별시',
+            'city': '동대문구',
+            'district': '이문동',
+        }
+        legal_district = LegalDistrict.objects.create(**legal_district_dict)
+        
+        # 가게 생성
+        place_dict = {
+            'name': '한국외대 서울캠퍼스',
+            'address_district': legal_district,
+            'address_rest': '1234',
+            'image_url': 'aaa.jpg',
+            'opens_at': datetime.now().time(),
+            'closes_at': datetime.now().time(),
+            'tags': '대학교',
+            'last_order': datetime.now().time(),
+            'tel': '02-xxxx-xxxx',
+            'owner': None,
+        }
+        Place.objects.create(**place_dict)
+
+        # 영수증 생성
+        for i in range(3):
+            Receipt.objects.create(receipt_number=f'{i:08d}')
+
+        # 유저 생성 및 로그인
+        user = User.objects.create(username='test', password='1234')
+        self.client.force_authenticate(user=user)
+
+        return super().setUp()
+    
+    @print_success_message("이미 완성된 쿠폰에 스탬프 적립되지 않는지 테스트")
+    def test_new_stamp_on_completed_coupon(self):
+        # 쿠폰 템플릿 생성
+        original_template_dict = {
+            'first_n_persons': 10,
+            'is_on': True,
+            'place': Place.objects.get(id=1)
+        }
+        coupon_template = CouponTemplate.objects.create(**original_template_dict)
+
+        # 리워드 정보 생성
+        reward_info_dict = {
+            'coupon_template': coupon_template,
+            'amount': 2,
+            'reward': '대학원 입학권 무료'
+        }
+        RewardsInfo.objects.create(**reward_info_dict)
+
+        # 쿠폰 생성
+        r = self.client.post('/couponbook/couponbooks/1/coupons/', {'original_template': 1})
+        self.assertEqual(r.status_code, 201, "쿠폰 등록에 실패한 것 같습니다...")
+
+        # 쿠폰 완성
+        for i in range(2):
+            r = self.client.post('/couponbook/coupons/1/stamps/', {'receipt': f"{i:08d}"})
+        
+        # 추가적인 적립 안되어야 함
+        r = self.client.post('/couponbook/coupons/1/stamps/', {'receipt': f"{i+1:08d}"})
+        self.assertEqual(r.status_code, 400, "한계를 돌파해버렸습니다!")
+
+    @print_success_message("기간 만료된 쿠폰에 스탬프 적립되지 않는지 테스트")
+    def test_new_stamp_on_expired_coupon(self):
+        # 쿠폰 템플릿 생성
+        original_template_dict = {
+            'first_n_persons': 10,
+            'valid_until': now(),
+            'is_on': True,
+            'place': Place.objects.get(id=1)
+        }
+        coupon_template = CouponTemplate.objects.create(**original_template_dict)
+
+        # 리워드 정보 생성
+        reward_info_dict = {
+            'coupon_template': coupon_template,
+            'amount': 1,
+            'reward': '대학원 입학권 무료'
+        }
+        RewardsInfo.objects.create(**reward_info_dict)
+
+        # 쿠폰 생성
+        r = self.client.post('/couponbook/couponbooks/1/coupons/', {'original_template': 1})
+        self.assertEqual(r.status_code, 201, "쿠폰 등록에 실패한 것 같습니다...")
+
+        # 스탬프 적립
+        r = self.client.post('/couponbook/coupons/1/stamps/', {'receipt': f"{1:08d}"})
+        self.assertEqual(r.status_code, 400, "기간 만료된 쿠폰에 스탬프가 적립되어 버렸습니다!")
+
+    
+    # todo: 유효기간 지난 쿠폰 템플릿 나타나지 않는지 테스트
