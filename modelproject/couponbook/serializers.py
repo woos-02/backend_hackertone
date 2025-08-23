@@ -23,15 +23,33 @@ class StampListRequestSerializer(serializers.ModelSerializer):
 
     def validate(self, data) -> dict:
         """
-        1. 영수증 번호가 등록되어 있는 영수증인지 확인합니다.
-        2. 영수증 번호에 해당하는 스탬프가 이미 등록되어 있는지 확인합니다.
+        쿠폰 확인, 영수증 확인을 거쳐 스탬프 적립의 유효성을 검증합니다.
 
-        둘 중 하나라도 만족하지 못하면 ValidationError가 발생합니다.
+        유효하지 않으면 ValidationError가 일어납니다.
         """
+        
+        # 쿠폰 확인
+        coupon_id = self.context['coupon_id']
+        coupon = Coupon.objects.get(id=coupon_id)
+        original_template = coupon.original_template
+
+        # 1. 쿠폰이 완성된 쿠폰인지 확인합니다.
+        if hasattr(coupon, 'stamps') and (coupon.stamps.count() >= original_template.reward_info.amount):
+            print("if문 조건 참")
+            raise serializers.ValidationError("쿠폰이 이미 완성되었습니다.")
+
+        # 2. 쿠폰의 유효기간이 경과하지 않았는지 확인합니다.
+        if original_template.valid_until and original_template.valid_until < now():
+            raise serializers.ValidationError("쿠폰의 유효기간이 지났습니다.")
+
+        # 영수증 확인
         receipt = data.get("receipt")
+
+        # 1. 영수증 번호가 등록되어 있는 영수증인지 확인합니다.
         if not receipt:
             raise serializers.ValidationError("DB에 등록되지 않은 영수증 번호입니다.")
-
+        
+        # 2. 영수증 번호에 해당하는 스탬프가 이미 등록되어 있는지 확인합니다.
         if hasattr(receipt, "stamp"):
             raise serializers.ValidationError("이미 스탬프가 발급된 영수증 번호입니다.")
 
