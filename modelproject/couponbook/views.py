@@ -1,4 +1,4 @@
-from django.db.models import Count
+from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import (OpenApiExample, OpenApiParameter,
@@ -17,7 +17,7 @@ from .curation.utils import AICurator, UserStatistics
 from .filters import CouponFilter, CouponTemplateFilter
 from .models import *
 from .models import CouponTemplate, Place
-from .permissions import IsMyCouponBook, IsMyCoupon
+from .permissions import IsMyCoupon, IsMyCouponBook
 from .serializers import *
 from .serializers import CouponTemplateCreateSerializer, PlaceSerializer
 
@@ -280,8 +280,8 @@ class CouponTemplateListView(generics.ListCreateAPIView):
     """
     쿠폰 템플릿 목록 조회(GET) + 템플릿 생성(POST, 점주 전용)
     """
-    queryset = CouponTemplate.objects.filter(is_on=True)
     authentication_classes = [JWTAuthentication]
+    queryset = CouponTemplate.objects.all()
     filter_backends = [DjangoFilterBackend]
     filterset_class = CouponTemplateFilter
 
@@ -313,8 +313,8 @@ class CouponTemplateListView(generics.ListCreateAPIView):
         """
         # 부모에 get_queryset이 있으면 사용, 없으면 기본 queryset 사용
         qs = super().get_queryset() if hasattr(super(), "get_queryset") else self.queryset
-        # Place 및 LegalDistrict 조인
-        return qs.select_related("place", "place__address_district")
+        # Place 및 LegalDistrict 조인 + 추가 필터링
+        return qs.select_related("place", "place__address_district").filter(Q(valid_until=None) | Q(valid_until__gte=now()), is_on=True)
 
 @extend_schema_view(
     get=extend_schema(
@@ -332,7 +332,7 @@ class CouponTemplateDetailView(RetrieveAPIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
 
-    queryset = CouponTemplate.objects.filter(is_on=True)
+    queryset = CouponTemplate.objects.filter(Q(valid_until=None) | Q(valid_until__gte=now()), is_on=True)
     lookup_url_kwarg = 'coupon_template_id'
 
 
