@@ -420,12 +420,27 @@ class CouponListRequestSerializer(serializers.ModelSerializer):
     def validate(self, data) -> dict:
         """
         1. 원본 쿠폰 템플릿이 존재하는지 확인합니다.
-        2. 이미 해당 유저가 해당 쿠폰 템플릿으로 등록한 쿠폰이 존재하는지 확인합니다.
+        2. 유효 기간이 만료되지 않았는지 확인합니다.
+        3. 선착순 인원이 있다면 마감되지 않았는지 확인합니다.
+        4. 이미 해당 유저가 해당 쿠폰 템플릿으로 등록한 쿠폰이 존재하는지 확인합니다.
         """
+
+        # 1. 원본 쿠폰 템플릿이 존재하는지 확인합니다.
         original_template = data.get("original_template")
         if not original_template:
             raise serializers.ValidationError("해당 쿠폰 템플릿이 존재하지 않습니다.")
-
+        
+        # 2. 유효 기간이 만료되지 않았는지 확인합니다.
+        if original_template.valid_until and original_template.valid_until < now():
+            raise serializers.ValidationError("유효기간이 만료된 쿠폰 템플릿입니다.")
+        
+        # 3. 선착순 인원이 있다면 마감되지 않았는지 확인합니다.
+        if hasattr(original_template, 'coupons') \
+        and original_template.first_n_persons \
+        and original_template.first_n_persons <= original_template.coupons.count():
+            raise serializers.ValidationError("이미 선착순 마감된 쿠폰 템플릿입니다.")
+        
+        # 4. 이미 해당 유저가 해당 쿠폰 템플릿으로 등록한 쿠폰이 존재하는지 확인합니다.
         couponbook = self.context["couponbook"]
         coupon = Coupon.objects.filter(
             couponbook=couponbook, original_template=original_template
