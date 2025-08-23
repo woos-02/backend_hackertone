@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.db import models
 
-from .models import (Coupon, CouponBook, CouponTemplate, LegalDistrict, Place,
+from .models import (Coupon, FavoriteCoupon, CouponBook, CouponTemplate, LegalDistrict, Place,
                      Receipt, RewardsInfo, Stamp)
 
 
@@ -25,6 +25,17 @@ class CouponAdmin(admin.ModelAdmin):
         "original_template",
     )
     search_fields = ("couponbook__user__username", "original_template__id")
+
+# FavoriteCoupon 모델을 Django 관리자 페이지에 등록
+@admin.register(FavoriteCoupon)
+class FavoriteCouponAdmin(admin.ModelAdmin):
+    list_display = (
+        'id',
+        'coupon',
+        'couponbook',
+        'added_at',
+    )
+    search_fields = ('id', 'coupon', 'couponbook')
 
 
 # CouponTemplate 모델을 Django 관리자 페이지에 등록
