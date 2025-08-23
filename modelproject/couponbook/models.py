@@ -1,5 +1,5 @@
 from django.db import models
-from django.utils.timezone import datetime
+from django.utils.timezone import now
 
 from .latlng.utils import get_place_latlng
 
@@ -27,6 +27,41 @@ class Coupon(models.Model):
                                           on_delete=models.CASCADE,
                                           help_text="쿠폰 발행에 사용된 쿠폰 템플릿 id입니다. 유효성 검증에 사용합니다.")
     saved_at = models.DateTimeField(auto_now_add=True, help_text="쿠폰을 등록한 날짜와 시간입니다.")
+
+    def save(self, *args, **kwargs):
+        """
+        쿠폰 등록 전 모델 단계에서 검증을 진행합니다.
+
+        1. 원본 쿠폰 템플릿이 존재하는지 확인합니다.
+        2. 유효 기간이 만료되지 않았는지 확인합니다.
+        3. 선착순 인원이 있다면 마감되지 않았는지 확인합니다.
+        4. 이미 해당 유저가 해당 쿠폰 템플릿으로 등록한 쿠폰이 존재하는지 확인합니다.
+        """
+        
+        # 1. 원본 쿠폰 템플릿이 존재하는지 확인합니다.
+        if not CouponTemplate.objects.filter(id=self.original_template.id).exists():
+            print("원본 쿠폰 템플릿이 존재하지 않아 쿠폰이 등록되지 않았습니다.")
+            return
+        
+        # 2. 유효 기간이 만료되지 않았는지 확인합니다.
+        print("Coupon에서", type(self.original_template.valid_until))
+        if self.original_template.valid_until and self.original_template.valid_until < now():
+            print("쿠폰 템플릿의 유효 기간이 만료되어 쿠폰이 등록되지 않았습니다.")
+            return
+        
+        # 3. 선착순 인원이 있다면 마감되지 않았는지 확인합니다.
+        if self.original_template.first_n_persons \
+        and Coupon.objects.filter(original_template=self.original_template).count() >= self.original_template.first_n_persons:
+            print("선착순 인원이 마감되어 쿠폰이 등록되지 않았습니다.")
+            return
+
+        # 4. 이미 해당 유저가 해당 쿠폰 템플릿으로 등록한 쿠폰이 존재하는지 확인합니다.
+        if Coupon.objects.filter(couponbook=self.couponbook, original_template=self.original_template).exists():
+            print("이미 해당 쿠폰 템플릿으로 등록된 쿠폰이 있어 쿠폰이 등록되지 않았습니다.")
+            return
+        
+        return super().save(*args, **kwargs)
+
 
 class FavoriteCoupon(models.Model):
     """
@@ -97,7 +132,8 @@ class Stamp(models.Model):
         coupon = self.coupon
 
         # 1) 쿠폰의 기간이 만료되진 않았는지?
-        if coupon.original_template.valid_until and coupon.original_template.valid_until < datetime.now():
+        print("Stamp에서", type(coupon.original_template.valid_until))
+        if coupon.original_template.valid_until and coupon.original_template.valid_until < now():
             print("쿠폰의 기간이 만료되어 스탬프 인스턴스가 등록되지 않았습니다.")
             return
         
