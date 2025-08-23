@@ -44,7 +44,6 @@ class Coupon(models.Model):
             return
         
         # 2. 유효 기간이 만료되지 않았는지 확인합니다.
-        print("Coupon에서", type(self.original_template.valid_until))
         if self.original_template.valid_until and self.original_template.valid_until < now():
             print("쿠폰 템플릿의 유효 기간이 만료되어 쿠폰이 등록되지 않았습니다.")
             return
@@ -132,7 +131,6 @@ class Stamp(models.Model):
         coupon = self.coupon
 
         # 1) 쿠폰의 기간이 만료되진 않았는지?
-        print("Stamp에서", type(coupon.original_template.valid_until))
         if coupon.original_template.valid_until and coupon.original_template.valid_until < now():
             print("쿠폰의 기간이 만료되어 스탬프 인스턴스가 등록되지 않았습니다.")
             return
