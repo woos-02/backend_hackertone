@@ -1,5 +1,3 @@
-from datetime import datetime
-
 from accounts.models import User
 from couponbook.latlng.utils import KakaoMapAPIClient
 from couponbook.models import *
@@ -36,19 +34,16 @@ class CouponTestCase(TestCase):
         }
         legal_district = LegalDistrict.objects.create(**legal_district_dict)
         
-        now_date = now()
-        now_time = datetime.now().time()
-        
         # 가게 생성
         place_dict = {
             'name': '한국외대 서울캠퍼스',
             'address_district': legal_district,
             'address_rest': '1234',
             'image_url': 'aaa.jpg',
-            'opens_at': datetime.now().time(),
-            'closes_at': datetime.now().time(),
+            'opens_at': now().time(),
+            'closes_at': now().time(),
             'tags': '대학교',
-            'last_order': datetime.now().time(),
+            'last_order': now().time(),
             'tel': '02-xxxx-xxxx',
             'owner': None,
         }
@@ -56,7 +51,7 @@ class CouponTestCase(TestCase):
 
         # 쿠폰 템플릿 생성
         original_template_dict = {
-            'valid_until': datetime.now() + timedelta(days=5),
+            'valid_until': now() + timedelta(days=5),
             'first_n_persons': 10,
             'is_on': True,
             'place': place
@@ -155,10 +150,10 @@ class PlaceTestCase(TestCase):
             'address_district': legal_district,
             'address_rest': '1234',
             'image_url': 'aaa.jpg',
-            'opens_at': datetime.now().time(),
-            'closes_at': datetime.now().time(),
+            'opens_at': now().time(),
+            'closes_at': now().time(),
             'tags': '역',
-            'last_order': datetime.now().time(),
+            'last_order': now().time(),
             'tel': '02-xxxx-xxxx',
             'owner': None,
         }
@@ -179,10 +174,10 @@ class PlaceTestCase(TestCase):
             'address_district': legal_district,
             'address_rest': '1234',
             'image_url': 'aaa.jpg',
-            'opens_at': datetime.now().time(),
-            'closes_at': datetime.now().time(),
+            'opens_at': now().time(),
+            'closes_at': now().time(),
             'tags': '역',
-            'last_order': datetime.now().time(),
+            'last_order': now().time(),
             'tel': '02-xxxx-xxxx',
             'owner': None,
         }
@@ -199,10 +194,10 @@ class PlaceTestCase(TestCase):
             'address_district': legal_district,
             'address_rest': '1234',
             'image_url': 'aaa.jpg',
-            'opens_at': datetime.now().time(),
-            'closes_at': datetime.now().time(),
+            'opens_at': now().time(),
+            'closes_at': now().time(),
             'tags': '식당',
-            'last_order': datetime.now().time(),
+            'last_order': now().time(),
             'tel': '02-xxxx-xxxx',
             'owner': None,
         }
