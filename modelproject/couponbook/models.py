@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils.timezone import datetime
 
 from .latlng.utils import get_place_latlng
 
@@ -83,6 +84,39 @@ class Stamp(models.Model):
                                        help_text="해당 스탬프의 적립 근거가 되는 영수증 번호입니다.")
     customer = models.ForeignKey("accounts.User", on_delete=models.CASCADE, help_text="스탬프를 적립받은 고객 id입니다.")
     created_at = models.DateTimeField(auto_now_add=True, help_text="스탬프가 적립된 날짜와 시간입니다.")
+
+    def save(self, *args, **kwargs):
+        """
+        스탬프 등록 시에 모델 레벨에서 유효성 검증을 실행합니다.
+
+        1) 쿠폰의 기간이 만료되진 않았는지?
+        2) 이미 완성된 쿠폰인지?
+        3) 일치하는 영수증이 존재하는지?
+        4) 이미 해당되는 영수증으로 스탬프가 등록되진 않았는지?
+        """
+        coupon = self.coupon
+
+        # 1) 쿠폰의 기간이 만료되진 않았는지?
+        if coupon.original_template.valid_until and coupon.original_template.valid_until < datetime.now():
+            print("쿠폰의 기간이 만료되어 스탬프 인스턴스가 등록되지 않았습니다.")
+            return
+        
+        # 2) 이미 완성된 쿠폰인지?
+        if Stamp.objects.filter(coupon=coupon).count() >= coupon.original_template.reward_info.amount:
+            print("이미 완성된 쿠폰이어서 스탬프 인스턴스가 등록되지 않았습니다.")
+            return
+        
+        # 3) 일치하는 영수증이 존재하는지?
+        if not Receipt.objects.filter(receipt_number=self.receipt.receipt_number).exists():
+            print("일치하는 영수증이 없어서 스탬프 인스턴스가 등록되지 않았습니다.")
+            return
+        
+        # 4) 이미 해당되는 영수증으로 스탬프가 등록되진 않았는지?
+        if Stamp.objects.filter(receipt=self.receipt).exists():
+            print("이미 해당되는 영수증으로 등록된 스탬프가 있어 스탬프 인스턴스가 등록되지 않았습니다.")
+            return
+        
+        return super().save(*args, **kwargs)
 
 class Receipt(models.Model):
     """
