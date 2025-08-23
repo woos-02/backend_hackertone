@@ -4,7 +4,7 @@ from accounts.models import User
 from couponbook.latlng.utils import KakaoMapAPIClient
 from couponbook.models import *
 from django.test import TestCase
-from django.utils.timezone import now
+from django.utils.timezone import now, timedelta
 
 from .decorators import print_success_message
 
@@ -56,12 +56,20 @@ class CouponTestCase(TestCase):
 
         # 쿠폰 템플릿 생성
         original_template_dict = {
-            'valid_until': datetime.now(),
+            'valid_until': datetime.now() + timedelta(days=5),
             'first_n_persons': 10,
             'is_on': True,
             'place': place
         }
         original_template = CouponTemplate.objects.create(**original_template_dict)
+
+        # 리워드 정보 생성
+        reward_info_dict = {
+            'amount': 5,
+            'reward': '대학원 무료',
+            'coupon_template': original_template,
+        }
+        RewardsInfo.objects.create(**reward_info_dict)
 
         # 테스트에서 활용할 인스턴스들을 딕셔너리에 담아서 저장
         self.test_context = {
