@@ -1,3 +1,6 @@
+from datetime import timedelta
+from time import sleep
+
 from accounts.models import User
 from couponbook.models import *
 from django.test import TestCase
@@ -71,7 +74,6 @@ class FavoriteCouponTestCase(APITestCase):
 
         # 쿠폰 템플릿 생성
         original_template_dict = {
-            'valid_until': now(),
             'first_n_persons': 10,
             'is_on': True,
             'place': place
@@ -375,7 +377,7 @@ class StampTestCase(APITestCase):
         # 쿠폰 템플릿 생성
         original_template_dict = {
             'first_n_persons': 10,
-            'valid_until': now(),
+            'valid_until': now() + timedelta(seconds=5), # now()로 설정하면 즉시 만료되므로, now()에 timedelta seconds를 조금 추가
             'is_on': True,
             'place': Place.objects.get(id=1)
         }
@@ -392,6 +394,9 @@ class StampTestCase(APITestCase):
         # 쿠폰 생성
         r = self.client.post('/couponbook/couponbooks/1/coupons/', {'original_template': 1})
         self.assertEqual(r.status_code, 201, "쿠폰 등록에 실패한 것 같습니다...")
+
+        # 유효기간이 지나도록 5초를 기다림
+        sleep(5)
 
         # 스탬프 적립
         r = self.client.post('/couponbook/coupons/1/stamps/', {'receipt': f"{1:08d}"})
@@ -448,12 +453,7 @@ class ExpiredCouponTemplateTestCase(APITestCase):
     """
     유효기간이 만료된 쿠폰 템플릿에 대한 테스트케이스입니다.
     """
-
-    @print_success_message("유효기간이 만료된 쿠폰 템플릿이 표시되지 않는지 테스트")
-    def test_coupon_template_list_expired_coupon_template(self):
-        """
-        유효기간이 만료된 쿠폰 템플릿이 표시되지 않는지 테스트하는 테스트 메소드입니다.
-        """
+    def setUp(self):
         # 법정동 주소 생성
         legal_district_dict = {
             'code_in_law': '1123011000',
@@ -483,10 +483,24 @@ class ExpiredCouponTemplateTestCase(APITestCase):
             'valid_until': now(),
             'first_n_persons': 10,
             'is_on': True,
-            'place': place
+            'place': Place.objects.get(id=1)
         }
-        CouponTemplate.objects.create(**original_template_dict)
+        coupon_template = CouponTemplate.objects.create(**original_template_dict)
 
+        reward_info_dict = {
+            'amount': 5,
+            'reward': '대학원 무료',
+            'coupon_template': coupon_template,
+        }
+        RewardsInfo.objects.create(**reward_info_dict)
+
+        return super().setUp()
+
+    @print_success_message("유효기간이 만료된 쿠폰 템플릿이 표시되지 않는지 테스트")
+    def test_coupon_template_list_expired_coupon_template(self):
+        """
+        유효기간이 만료된 쿠폰 템플릿이 표시되지 않는지 테스트하는 테스트 메소드입니다.
+        """
         # 유저 생성 및 로그인
         user= User.objects.create(username='test', password='1234')
         self.client.force_authenticate(user=user)
@@ -494,8 +508,148 @@ class ExpiredCouponTemplateTestCase(APITestCase):
         # 쿠폰 템플릿 목록 조회
         r = self.client.get('/couponbook/coupon-templates/')
         self.assertEqual(bool(r.data), False, "유효 기간이 만료된 쿠폰 템플릿이 조회되었습니다!")
+    
+    @print_success_message("유효기간이 만료된 쿠폰 템플릿으로 쿠폰이 등록되지 않는지 테스트")
+    def test_add_coupon_from_expired_coupon_template(self):
+        """
+        쿠폰 템플릿의 유효기간이 만료되었을 때, 쿠폰이 등록되지 않는지 테스트하는 테스트 메소드입니다.
+        """
+        # 유저 생성 및 로그인
+        user = User.objects.create(username='test', password='1234')
+        self.client.force_authenticate(user=user)
 
-class LackDataTestCase(APITestCase):
+        # 쿠폰 등록
+        r = self.client.post('/couponbook/couponbooks/1/coupons/', {'original_template': 1})
+        self.assertEqual(r.status_code, 400, "쓸모없는 쿠폰이 등록되었습니다!")
+
+class FullCouponTemplateTestCase(APITestCase):
+    """
+    쿠폰 템플릿의 선착순 인원이 모두 채워졌을 때, 쿠폰이 등록되지 않는지 테스트하는 테스트 케이스입니다.
+    """
+
+    @print_success_message("쿠폰 템플릿의 선착순 인원이 모두 채워졌을 때, 쿠폰이 등록되지 않는지 테스트")
+    def test_add_coupon_from_full_coupon_template(self):
+        """
+        이미 쿠폰 템플릿의 선착순 인원이 마감되었는데, 추가로 쿠폰이 등록되지는 않는지 테스트하는 테스트 메소드입니다.
+        """
+
+        # 법정동 주소 생성
+        legal_district_dict = {
+            'code_in_law': '1123011000',
+            'province': '서울특별시',
+            'city': '동대문구',
+            'district': '이문동',
+        }
+        legal_district = LegalDistrict.objects.create(**legal_district_dict)
+        
+        # 가게 생성
+        place_dict = {
+            'name': '한국외대 서울캠퍼스',
+            'address_district': legal_district,
+            'address_rest': '1234',
+            'image_url': 'aaa.jpg',
+            'opens_at': now().time(),
+            'closes_at': now().time(),
+            'tags': '대학교',
+            'last_order': now().time(),
+            'tel': '02-xxxx-xxxx',
+            'owner': None,
+        }
+        place = Place.objects.create(**place_dict)
+
+        # 쿠폰 템플릿 생성
+        original_template_dict = {
+            'valid_until': now() + timedelta(days=5),
+            'first_n_persons': 1,
+            'is_on': True,
+            'place': Place.objects.get(id=1)
+        }
+        coupon_template = CouponTemplate.objects.create(**original_template_dict)
+
+        reward_info_dict = {
+            'amount': 5,
+            'reward': '대학원 무료',
+            'coupon_template': coupon_template,
+        }
+        RewardsInfo.objects.create(**reward_info_dict)
+
+        # 유저 생성
+        user1 = User.objects.create(username='test1', password='1234')
+        user2 = User.objects.create(username='test2', password='1234')
+
+        # 유저1로 로그인 후 쿠폰 등록
+        self.client.force_authenticate(user=user1)
+        r = self.client.post('/couponbook/couponbooks/1/coupons/', {'original_template': 1})
+        self.assertEqual(r.status_code, 201, "쿠폰 등록에 실패한 것 같습니다...")
+        
+        # 유저2로 로그인 후 쿠폰 등록 (실패해야 함)
+        self.client.force_authenticate(user=user2)
+        r = self.client.post('/couponbook/couponbooks/2/coupons/', {'original_template': 1})
+        self.assertEqual(r.status_code, 400, "이건 선착순이 아니네요..")
+
+class AlreadyOwnCouponTemplateTestCase(APITestCase):
+    """
+    이미 등록한 쿠폰 템플릿이 중복 등록되지 않는지 테스트하는 테스트 케이스입니다.
+    """
+
+    @print_success_message("이미 등록한 쿠폰 템플릿이 중복 등록되지 않는지 테스트")
+    def test_add_coupon_from_already_own_coupon_template(self):
+        """
+        이미 등록한 쿠폰 템플릿이 중복 등록되지 않는지 테스트하는 테스트 메소드입니다.
+        """
+
+        # 법정동 주소 생성
+        legal_district_dict = {
+            'code_in_law': '1123011000',
+            'province': '서울특별시',
+            'city': '동대문구',
+            'district': '이문동',
+        }
+        legal_district = LegalDistrict.objects.create(**legal_district_dict)
+        
+        # 가게 생성
+        place_dict = {
+            'name': '한국외대 서울캠퍼스',
+            'address_district': legal_district,
+            'address_rest': '1234',
+            'image_url': 'aaa.jpg',
+            'opens_at': now().time(),
+            'closes_at': now().time(),
+            'tags': '대학교',
+            'last_order': now().time(),
+            'tel': '02-xxxx-xxxx',
+            'owner': None,
+        }
+        place = Place.objects.create(**place_dict)
+
+        # 쿠폰 템플릿 생성
+        original_template_dict = {
+            'valid_until': now() + timedelta(days=5),
+            'first_n_persons': 10,
+            'is_on': True,
+            'place': Place.objects.get(id=1)
+        }
+        coupon_template = CouponTemplate.objects.create(**original_template_dict)
+
+        reward_info_dict = {
+            'amount': 5,
+            'reward': '대학원 무료',
+            'coupon_template': coupon_template,
+        }
+        RewardsInfo.objects.create(**reward_info_dict)
+
+        # 유저 생성
+        user1 = User.objects.create(username='test1', password='1234')
+        self.client.force_authenticate(user=user1)
+
+        # 쿠폰 등록
+        r = self.client.post('/couponbook/couponbooks/1/coupons/', {'original_template': 1})
+        self.assertEqual(r.status_code, 201, "쿠폰 등록에 실패한 것 같습니다..")
+        
+        r = self.client.post('/couponbook/couponbooks/1/coupons/', {'original_template': 1})
+        self.assertEqual(r.status_code, 400, "쿠폰이 복사가 되네요..")
+        
+class LackRelatedDataTestCase(APITestCase):
     """
     연관성이 있는 데이터 중 한쪽의 데이터가 없을 때 오류가 발생하지 않는지 테스트합니다.
      
@@ -533,7 +687,6 @@ class LackDataTestCase(APITestCase):
 
         # 쿠폰 템플릿 생성
         original_template_dict = {
-            'valid_until': now(),
             'first_n_persons': 10,
             'is_on': True,
             'place': place
@@ -580,7 +733,6 @@ class LackDataTestCase(APITestCase):
 
         # 쿠폰 템플릿 생성
         original_template_dict = {
-            'valid_until': now(),
             'first_n_persons': 10,
             'is_on': True,
             'place': place
