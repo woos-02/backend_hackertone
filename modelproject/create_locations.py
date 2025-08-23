@@ -98,7 +98,7 @@ def main():
     data = defaultdict(lambda: defaultdict(list))
     # seen[시도][시군구][동명] -> 채택한 code (번호가 작은 걸 유지)
     seen = defaultdict(lambda: defaultdict(dict))
-    index = []  # 평탄화 인덱스
+    # index = []  # 평탄화 인덱스
 
     with open_csv(csv_path) as f:
         sample = f.read(2048); f.seek(0)
@@ -133,15 +133,17 @@ def main():
             for city, dmap in cities.items():
                 for district, code in dmap.items():
                     data[province][city].append({"district": district, "code": code})
-                    index.append({"province": province, "city": city, "district": district, "code": code})
+                    #index.append({"province": province, "city": city, "district": district, "code": code})
 
     # 보기 좋게 정렬
     for prov in data.values():
         for c, lst in list(prov.items()):
             prov[c] = sorted(lst, key=lambda x: (x["district"], x["code"]))
-    index.sort(key=lambda x: (x["province"], x["city"], x["district"], x["code"]))
+    # index.sort(key=lambda x: (x["province"], x["city"], x["district"], x["code"]))
 
-    payload = {"hierarchy": data, "index": index}
+    payload = {"hierarchy": data 
+               # "index": index
+               }
 
     # 두 군데 모두 저장
     for out_path in OUTPUTS:
