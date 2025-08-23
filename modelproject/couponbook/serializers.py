@@ -35,7 +35,6 @@ class StampListRequestSerializer(serializers.ModelSerializer):
 
         # 1. 쿠폰이 완성된 쿠폰인지 확인합니다.
         if hasattr(coupon, 'stamps') and (coupon.stamps.count() >= original_template.reward_info.amount):
-            print("if문 조건 참")
             raise serializers.ValidationError("쿠폰이 이미 완성되었습니다.")
 
         # 2. 쿠폰의 유효기간이 경과하지 않았는지 확인합니다.
