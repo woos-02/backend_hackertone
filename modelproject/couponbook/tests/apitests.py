@@ -1,5 +1,3 @@
-from datetime import datetime
-
 from accounts.models import User
 from couponbook.models import *
 from django.test import TestCase
@@ -62,10 +60,10 @@ class FavoriteCouponTestCase(APITestCase):
             'address_district': legal_district,
             'address_rest': '1234',
             'image_url': 'aaa.jpg',
-            'opens_at': datetime.now().time(),
-            'closes_at': datetime.now().time(),
+            'opens_at': now().time(),
+            'closes_at': now().time(),
             'tags': '대학교',
-            'last_order': datetime.now().time(),
+            'last_order': now().time(),
             'tel': '02-xxxx-xxxx',
             'owner': None,
         }
@@ -73,7 +71,7 @@ class FavoriteCouponTestCase(APITestCase):
 
         # 쿠폰 템플릿 생성
         original_template_dict = {
-            'valid_until': datetime.now(),
+            'valid_until': now(),
             'first_n_persons': 10,
             'is_on': True,
             'place': place
@@ -169,10 +167,10 @@ class ResponseTestCase(APITestCase):
             'address_district': legal_district,
             'address_rest': '1234',
             'image_url': 'aaa.jpg',
-            'opens_at': datetime.now().time(),
-            'closes_at': datetime.now().time(),
+            'opens_at': now().time(),
+            'closes_at': now().time(),
             'tags': '대학교',
-            'last_order': datetime.now().time(),
+            'last_order': now().time(),
             'tel': '02-xxxx-xxxx',
             'owner': None,
         }
@@ -180,7 +178,6 @@ class ResponseTestCase(APITestCase):
 
         # 쿠폰 템플릿 생성
         original_template_dict = {
-            'valid_until': datetime.now(),
             'first_n_persons': 10,
             'is_on': True,
             'place': place
@@ -195,7 +192,9 @@ class ResponseTestCase(APITestCase):
         }
         RewardsInfo.objects.create(**reward_info_dict)
 
-        Receipt.objects.create(receipt_number='00000000')
+        # 영수증 생성
+        for i in range(3):
+            Receipt.objects.create(receipt_number=f'{i:08d}')
 
         # 유저 생성 및 로그인
         user = User.objects.create(username='test', password='1234')
@@ -288,7 +287,8 @@ class ResponseTestCase(APITestCase):
         r = self.client.post('/couponbook/couponbooks/1/coupons/', {'original_template': 1})
         self.assertEqual(r.status_code, 201, "쿠폰 등록에 실패한 것 같습니다...")
 
-        r = self.client.post('/couponbook/coupons/1/stamps/', {'receipt': '00000000'})
+        r = self.client.post('/couponbook/coupons/1/stamps/', {'receipt': f'{0:08d}'})
+        print("응답 데이터ㅓㅓㅓㅓㅓㅓㅓㅓ", r.data)
         self.assertEqual(r.status_code, 201, "스탬프 적립에 실패한 것 같습니다...")
 
         self.assertEqual('current_stamps' in r.data.keys(), f"필요한 데이터가 빠졌습니다! {key}")
@@ -315,10 +315,10 @@ class StampTestCase(APITestCase):
             'address_district': legal_district,
             'address_rest': '1234',
             'image_url': 'aaa.jpg',
-            'opens_at': datetime.now().time(),
-            'closes_at': datetime.now().time(),
+            'opens_at': now().time(),
+            'closes_at': now().time(),
             'tags': '대학교',
-            'last_order': datetime.now().time(),
+            'last_order': now().time(),
             'tel': '02-xxxx-xxxx',
             'owner': None,
         }
@@ -469,10 +469,10 @@ class ExpiredCouponTemplateTestCase(APITestCase):
             'address_district': legal_district,
             'address_rest': '1234',
             'image_url': 'aaa.jpg',
-            'opens_at': datetime.now().time(),
-            'closes_at': datetime.now().time(),
+            'opens_at': now().time(),
+            'closes_at': now().time(),
             'tags': '대학교',
-            'last_order': datetime.now().time(),
+            'last_order': now().time(),
             'tel': '02-xxxx-xxxx',
             'owner': None,
         }
@@ -480,7 +480,7 @@ class ExpiredCouponTemplateTestCase(APITestCase):
 
         # 쿠폰 템플릿 생성
         original_template_dict = {
-            'valid_until': datetime.now(),
+            'valid_until': now(),
             'first_n_persons': 10,
             'is_on': True,
             'place': place
@@ -493,7 +493,7 @@ class ExpiredCouponTemplateTestCase(APITestCase):
 
         # 쿠폰 템플릿 목록 조회
         r = self.client.get('/couponbook/coupon-templates/')
-        self.assertEqual(r.data, False, "유효 기간이 만료된 쿠폰 템플릿이 조회되었습니다!")
+        self.assertEqual(bool(r.data), False, "유효 기간이 만료된 쿠폰 템플릿이 조회되었습니다!")
 
 class LackDataTestCase(APITestCase):
     """
@@ -522,10 +522,10 @@ class LackDataTestCase(APITestCase):
             'address_district': legal_district,
             'address_rest': '1234',
             'image_url': 'aaa.jpg',
-            'opens_at': datetime.now().time(),
-            'closes_at': datetime.now().time(),
+            'opens_at': now().time(),
+            'closes_at': now().time(),
             'tags': '대학교',
-            'last_order': datetime.now().time(),
+            'last_order': now().time(),
             'tel': '02-xxxx-xxxx',
             'owner': None,
         }
@@ -533,7 +533,7 @@ class LackDataTestCase(APITestCase):
 
         # 쿠폰 템플릿 생성
         original_template_dict = {
-            'valid_until': datetime.now(),
+            'valid_until': now(),
             'first_n_persons': 10,
             'is_on': True,
             'place': place
@@ -569,10 +569,10 @@ class LackDataTestCase(APITestCase):
             'address_district': legal_district,
             'address_rest': '1234',
             'image_url': 'aaa.jpg',
-            'opens_at': datetime.now().time(),
-            'closes_at': datetime.now().time(),
+            'opens_at': now().time(),
+            'closes_at': now().time(),
             'tags': '대학교',
-            'last_order': datetime.now().time(),
+            'last_order': now().time(),
             'tel': '02-xxxx-xxxx',
             'owner': None,
         }
@@ -580,7 +580,7 @@ class LackDataTestCase(APITestCase):
 
         # 쿠폰 템플릿 생성
         original_template_dict = {
-            'valid_until': datetime.now(),
+            'valid_until': now(),
             'first_n_persons': 10,
             'is_on': True,
             'place': place
