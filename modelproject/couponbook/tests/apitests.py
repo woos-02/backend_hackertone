@@ -251,7 +251,7 @@ class ResponseTestCase(APITestCase):
         """
         단일 쿠폰 정보 조회가 필요한 데이터를 반환하고 있는지 테스트하는 테스트 메소드입니다.
         
-        필요한 데이터: 즐겨찾기 여부, 완성 위한 스탬프 개수, 리워드 정보, 현재 스탬프 개수, 매장 정보
+        필요한 데이터: 즐겨찾기 여부, 리워드 정보, 현재 스탬프 개수, 매장 정보
             - 리워드 정보: 완성을 위해 필요한 개수, 리워드
             - 매장 정보: 가게 이미지, 위치, 오픈 시간, 종료 시간, 라스트 오더, 연락처
         """
@@ -261,7 +261,7 @@ class ResponseTestCase(APITestCase):
         r = self.client.get('/couponbook/coupons/1/')
         keys = r.data.keys()
 
-        for key in ('is_favorite', 'max_stamps', 'reward_info',
+        for key in ('is_favorite', 'reward_info',
                     'current_stamps', 'place'):
             self.assertEqual(key in keys, True, f"필요한 데이터가 빠졌습니다! {key}")
 
@@ -292,7 +292,7 @@ class ResponseTestCase(APITestCase):
         r = self.client.post('/couponbook/coupons/1/stamps/', {'receipt': f'{0:08d}'})
         self.assertEqual(r.status_code, 201, "스탬프 적립에 실패한 것 같습니다...")
 
-        self.assertEqual('current_stamps' in r.data.keys(), f"필요한 데이터가 빠졌습니다! {key}")
+        self.assertEqual('current_stamps' in r.data.keys(), True, f"필요한 데이터가 빠졌습니다! current_stamps")
     
 
 class StampTestCase(APITestCase):
