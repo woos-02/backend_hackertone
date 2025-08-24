@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils.timezone import now
 
 from .latlng.utils import get_place_latlng
 
@@ -26,6 +27,40 @@ class Coupon(models.Model):
                                           on_delete=models.CASCADE,
                                           help_text="쿠폰 발행에 사용된 쿠폰 템플릿 id입니다. 유효성 검증에 사용합니다.")
     saved_at = models.DateTimeField(auto_now_add=True, help_text="쿠폰을 등록한 날짜와 시간입니다.")
+
+    def save(self, *args, **kwargs):
+        """
+        쿠폰 등록 전 모델 단계에서 검증을 진행합니다.
+
+        1. 원본 쿠폰 템플릿이 존재하는지 확인합니다.
+        2. 유효 기간이 만료되지 않았는지 확인합니다.
+        3. 선착순 인원이 있다면 마감되지 않았는지 확인합니다.
+        4. 이미 해당 유저가 해당 쿠폰 템플릿으로 등록한 쿠폰이 존재하는지 확인합니다.
+        """
+        
+        # 1. 원본 쿠폰 템플릿이 존재하는지 확인합니다.
+        if not CouponTemplate.objects.filter(id=self.original_template.id).exists():
+            print("원본 쿠폰 템플릿이 존재하지 않아 쿠폰이 등록되지 않았습니다.")
+            return
+        
+        # 2. 유효 기간이 만료되지 않았는지 확인합니다.
+        if self.original_template.valid_until and self.original_template.valid_until < now():
+            print("쿠폰 템플릿의 유효 기간이 만료되어 쿠폰이 등록되지 않았습니다.")
+            return
+        
+        # 3. 선착순 인원이 있다면 마감되지 않았는지 확인합니다.
+        if self.original_template.first_n_persons \
+        and Coupon.objects.filter(original_template=self.original_template).count() >= self.original_template.first_n_persons:
+            print("선착순 인원이 마감되어 쿠폰이 등록되지 않았습니다.")
+            return
+
+        # 4. 이미 해당 유저가 해당 쿠폰 템플릿으로 등록한 쿠폰이 존재하는지 확인합니다.
+        if Coupon.objects.filter(couponbook=self.couponbook, original_template=self.original_template).exists():
+            print("이미 해당 쿠폰 템플릿으로 등록된 쿠폰이 있어 쿠폰이 등록되지 않았습니다.")
+            return
+        
+        return super().save(*args, **kwargs)
+
 
 class FavoriteCoupon(models.Model):
     """
@@ -84,6 +119,39 @@ class Stamp(models.Model):
     customer = models.ForeignKey("accounts.User", on_delete=models.CASCADE, help_text="스탬프를 적립받은 고객 id입니다.")
     created_at = models.DateTimeField(auto_now_add=True, help_text="스탬프가 적립된 날짜와 시간입니다.")
 
+    def save(self, *args, **kwargs):
+        """
+        스탬프 등록 시에 모델 레벨에서 유효성 검증을 실행합니다.
+
+        1) 쿠폰의 기간이 만료되진 않았는지?
+        2) 이미 완성된 쿠폰인지?
+        3) 일치하는 영수증이 존재하는지?
+        4) 이미 해당되는 영수증으로 스탬프가 등록되진 않았는지?
+        """
+        coupon = self.coupon
+
+        # 1) 쿠폰의 기간이 만료되진 않았는지?
+        if coupon.original_template.valid_until and coupon.original_template.valid_until < now():
+            print("쿠폰의 기간이 만료되어 스탬프 인스턴스가 등록되지 않았습니다.")
+            return
+        
+        # 2) 이미 완성된 쿠폰인지?
+        if Stamp.objects.filter(coupon=coupon).count() >= coupon.original_template.reward_info.amount:
+            print("이미 완성된 쿠폰이어서 스탬프 인스턴스가 등록되지 않았습니다.")
+            return
+        
+        # 3) 일치하는 영수증이 존재하는지?
+        if not Receipt.objects.filter(receipt_number=self.receipt.receipt_number).exists():
+            print("일치하는 영수증이 없어서 스탬프 인스턴스가 등록되지 않았습니다.")
+            return
+        
+        # 4) 이미 해당되는 영수증으로 스탬프가 등록되진 않았는지?
+        if Stamp.objects.filter(receipt=self.receipt).exists():
+            print("이미 해당되는 영수증으로 등록된 스탬프가 있어 스탬프 인스턴스가 등록되지 않았습니다.")
+            return
+        
+        return super().save(*args, **kwargs)
+
 class Receipt(models.Model):
     """
     점주가 결제 완료 후 등록한 영수증입니다. 이 영수증과 일치해야 스탬프가 적립됩니다.
@@ -125,8 +193,15 @@ class Place(models.Model):
         """
         위도와 경도 정보를 카카오맵 API를 이용해서 계산해서 저장합니다.
         """
-        lat, lng = get_place_latlng(self.name)
-        self.lat, self.lng = lat, lng
-        
-        super().save(*args, **kwargs)
+        keyword = self.name
+        address_district = f"{self.address_district.province} {self.address_district.city} {self.address_district.district}"
 
+        latlng = get_place_latlng(f"{address_district} {keyword}")
+        
+        if latlng:
+            self.lat, self.lng = latlng
+            
+            return super().save(*args, **kwargs)
+        
+        print("존재하지 않는 가게여서 등록되지 않았습니다. 실존하는 가게임에도 등록이 되지 않는다면, 카카오맵에서 검색 가능한 가게인지 확인해보세요.")
+        return

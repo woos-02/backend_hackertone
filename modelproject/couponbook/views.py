@@ -1,4 +1,4 @@
-from django.db.models import Count
+from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import (OpenApiExample, OpenApiParameter,
@@ -7,8 +7,9 @@ from rest_framework import filters, generics, permissions
 from rest_framework import serializers as drf_serializers
 from rest_framework import status
 from rest_framework.exceptions import PermissionDenied, ValidationError
-from rest_framework.generics import (DestroyAPIView, ListAPIView,
-                                     ListCreateAPIView, RetrieveAPIView)
+from rest_framework.generics import (CreateAPIView, DestroyAPIView,
+                                     ListAPIView, ListCreateAPIView,
+                                     RetrieveAPIView, RetrieveDestroyAPIView)
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.authentication import JWTAuthentication
@@ -17,6 +18,7 @@ from .curation.utils import AICurator, UserStatistics
 from .filters import CouponFilter, CouponTemplateFilter
 from .models import *
 from .models import CouponTemplate, Place
+from .permissions import IsMyCoupon, IsMyCouponBook, IsMyCouponForFavoriteAdd
 from .serializers import *
 from .serializers import CouponTemplateCreateSerializer, PlaceSerializer
 
@@ -42,16 +44,16 @@ from .serializers import CouponTemplateCreateSerializer, PlaceSerializer
         tags=["CouponBook"],
         description="현재 로그인된 유저의 유저 id(username이 아닙니다)에 해당하는 쿠폰북을 조회합니다.",
         summary="현재 로그인된 유저의 쿠폰북 조회",
-        responses=CouponBookResponseSerializer,
+        responses=CouponBookDetailResponseSerializer,
     )
 )
 class CouponBookDetailView(RetrieveAPIView):
     """
     한 쿠폰북을 조회하는 뷰입니다. 로그인된 유저의 유저 id에 해당하는 쿠폰북을 조회합니다.
     """ 
-    serializer_class = CouponBookResponseSerializer
+    serializer_class = CouponBookDetailResponseSerializer
     authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated] # get_object에서 본인의 쿠폰북을 가져오기 때문에 IsAuthenticated 사용
 
     queryset= CouponBook.objects.all()
 
@@ -86,7 +88,7 @@ class CouponBookDetailView(RetrieveAPIView):
         tags=["Coupons"],
         description="쿠폰북 id에 해당하는 쿠폰북에 쿠폰 템플릿 id에 해당하는 쿠폰 템플릿 정보를 바탕으로 실사용 쿠폰을 생성하여 등록합니다.",
         summary="쿠폰 템플릿 바탕으로 실사용 쿠폰 등록",
-        request=CouponListRequestSerializer,
+        request=CouponCreateRequestSerializer,
         responses=CouponDetailResponseSerializer,
         examples=[OpenApiExample("요청 예시", value={"original_template": 1})],
     ),
@@ -97,7 +99,7 @@ class CouponListView(ListCreateAPIView):
     """
     serializer_class = CouponListResponseSerializer
     authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsMyCouponBook]
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
     filterset_class = CouponFilter
     ordering_fields = ['id', 'saved_at', 'stamp_counts']
@@ -115,7 +117,7 @@ class CouponListView(ListCreateAPIView):
     def get_serializer_class(self):
         if self.request.method == 'GET':
             return CouponListResponseSerializer
-        return CouponListRequestSerializer
+        return CouponCreateRequestSerializer
     
     def create(self, request, *args, **kwargs):
         """
@@ -145,13 +147,13 @@ class CouponListView(ListCreateAPIView):
         responses=CouponDetailResponseSerializer,
     )
 )
-class CouponDetailView(RetrieveAPIView):
+class CouponDetailView(RetrieveDestroyAPIView):
     """
-    한 쿠폰을 조회하는 뷰입니다. 쿠폰 id에 해당하는 쿠폰을 조회합니다.
+    한 쿠폰에 관련된 뷰입니다. 쿠폰 id에 해당하는 쿠폰을 조회하거나 삭제합니다.
     """
     serializer_class = CouponDetailResponseSerializer
     authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsMyCoupon]
 
     queryset = Coupon.objects.all()
     lookup_url_kwarg = 'coupon_id'
@@ -191,8 +193,8 @@ class CouponCurationView(ListAPIView):
         tags=["Favorites"],
         description="현재 로그인되어 있는 유저의 쿠폰북에 쿠폰 id에 해당하는 쿠폰을 즐겨찾기에 등록합니다.",
         summary="즐겨찾기 쿠폰 등록",
-        request=FavoriteCouponListRequestSerializer,
-        responses=FavoriteCouponDetailResponseSerializer,
+        request=FavoriteCouponCreateRequestSerializer,
+        responses=FavoriteCouponCreateResponseSerializer,
         examples=[OpenApiExample("요청 예시", value={"coupon": 1})],
     )
 )
@@ -201,12 +203,12 @@ class FavoriteCouponListView(ListCreateAPIView):
     현재 쿠폰북에 등록되어 있는 즐겨찾기 쿠폰들을 조회하는 뷰입니다.
     """
     authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsMyCouponBook, IsMyCouponForFavoriteAdd]
 
     def get_serializer_class(self):
         if self.request.method == 'GET':
             return FavoriteCouponListResponseSerializer
-        return FavoriteCouponListRequestSerializer
+        return FavoriteCouponCreateRequestSerializer
 
     def get_queryset(self):
         """
@@ -226,7 +228,7 @@ class FavoriteCouponListView(ListCreateAPIView):
         request_serializer.is_valid(raise_exception=True)
         instance = self.perform_create(request_serializer)
         headers = self.get_success_headers(request_serializer.data)
-        response_serializer = FavoriteCouponDetailResponseSerializer(instance)
+        response_serializer = FavoriteCouponCreateResponseSerializer(instance)
         return Response(response_serializer.data, status=status.HTTP_201_CREATED, headers=headers)
     
     def perform_create(self, serializer) -> FavoriteCoupon:
@@ -279,8 +281,8 @@ class CouponTemplateListView(generics.ListCreateAPIView):
     """
     쿠폰 템플릿 목록 조회(GET) + 템플릿 생성(POST, 점주 전용)
     """
-    queryset = CouponTemplate.objects.filter(is_on=True)
     authentication_classes = [JWTAuthentication]
+    queryset = CouponTemplate.objects.all()
     filter_backends = [DjangoFilterBackend]
     filterset_class = CouponTemplateFilter
 
@@ -312,8 +314,8 @@ class CouponTemplateListView(generics.ListCreateAPIView):
         """
         # 부모에 get_queryset이 있으면 사용, 없으면 기본 queryset 사용
         qs = super().get_queryset() if hasattr(super(), "get_queryset") else self.queryset
-        # Place 및 LegalDistrict 조인
-        return qs.select_related("place", "place__address_district")
+        # Place 및 LegalDistrict 조인 + 추가 필터링
+        return qs.select_related("place", "place__address_district").filter(Q(valid_until=None) | Q(valid_until__gte=now()), is_on=True)
 
 @extend_schema_view(
     get=extend_schema(
@@ -331,33 +333,27 @@ class CouponTemplateDetailView(RetrieveAPIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
 
-    queryset = CouponTemplate.objects.filter(is_on=True)
+    queryset = CouponTemplate.objects.filter(Q(valid_until=None) | Q(valid_until__gte=now()), is_on=True)
     lookup_url_kwarg = 'coupon_template_id'
 
 
 # -------------------------------- 스탬프 ---------------------------------
 @extend_schema_view(
-    get=extend_schema(
-        tags=["Stamps"],
-        description="쿠폰 id에 해당하는 쿠폰에 속한 스탬프들의 목록을 가져옵니다.",
-        summary="한 쿠폰의 스탬프 목록 조회",
-        responses=StampListResponseSerializer,
-    ),
     post=extend_schema(
         tags=["Stamps"],
         description="영수증 번호를 바탕으로 영수증이 존재하는지, 스탬프가 이미 등록되지 않았는지 확인하고, 두 조건 모두 만족하면 스탬프를 등록합니다.",
         summary="영수증 번호를 바탕으로 스탬프 등록",
-        request=StampListRequestSerializer,
-        responses=StampDetailResponseSerializer,
+        request=StampCreateRequestSerializer,
+        responses=StampCreateResponseSerializer,
         examples=[OpenApiExample("요청 예시", value={"receipt": "00000001"})],
     )
 )
-class StampListView(ListCreateAPIView):
+class StampListView(CreateAPIView):
     """
-    스탬프 목록 조회 및 스탬프 적립(등록)과 관련된 뷰입니다.
+    스탬프 적립(등록)과 관련된 뷰입니다.
     """
     authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsMyCoupon]
 
     def get_queryset(self):
         """
@@ -370,9 +366,9 @@ class StampListView(ListCreateAPIView):
     
     def get_serializer_class(self) -> drf_serializers.ModelSerializer:
         if self.request.method == 'GET':
-            return StampListResponseSerializer
+            return StampCreateResponseSerializer
         
-        return StampListRequestSerializer
+        return StampCreateRequestSerializer
     
     def get_serializer_context(self):
         ctx = super().get_serializer_context()
@@ -385,10 +381,9 @@ class StampListView(ListCreateAPIView):
         """
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        serializer.save()
-        queryset = self.get_queryset()
+        stamp = serializer.save()
 
-        response_serializer = StampListResponseSerializer(queryset, many=True, context=self.get_serializer_context())
+        response_serializer = StampCreateResponseSerializer(stamp, context=self.get_serializer_context())
         headers = self.get_success_headers(response_serializer.data)
         return Response(response_serializer.data, status=status.HTTP_201_CREATED, headers=headers)
     
@@ -397,21 +392,3 @@ class StampListView(ListCreateAPIView):
         시리얼라이저에 의해 저장된 데이터를 반환하도록 하여 응답용 시리얼라이저에 인스턴스를 넣을 수 있게 합니다.
         """
         return serializer.save()
-
-@extend_schema_view(
-    get=extend_schema(
-        tags=["Stamps"],
-        description="스탬프 id에 해당하는 스탬프의 정보를 조회합니다.",
-        summary="단일 스탬프 조회",
-        responses=StampDetailResponseSerializer,
-    )
-)
-class StampDetailView(RetrieveAPIView):
-    """
-    한 스탬프를 조회하는 데에 사용되는 뷰입니다.
-    """
-    authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated]
-    queryset = Stamp.objects.all()
-    serializer_class = StampDetailResponseSerializer
-    lookup_url_kwarg = 'stamp_id'
