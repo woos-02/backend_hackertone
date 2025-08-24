@@ -1,7 +1,7 @@
 from django.urls import path
 
-from .views import (CouponBookDetailView, CouponCurationView, CouponDetailView,
-                    CouponListView, CouponTemplateDetailView,
+from .views import (CouponBookDetailView, CouponDetailView, CouponListView,
+                    CouponTemplateCurationView, CouponTemplateDetailView,
                     CouponTemplateListView, FavoriteCouponDetailView,
                     FavoriteCouponListView, StampListView)
 
@@ -12,7 +12,7 @@ urlpatterns = [
     path('own-couponbook/', CouponBookDetailView.as_view(), name='user-own-couponbook'),
     path('couponbooks/<int:couponbook_id>/coupons/', CouponListView.as_view(), name='coupon-list'),
     path('coupons/<int:coupon_id>/', CouponDetailView.as_view(), name='coupon-detail'),
-    path('own-couponbook/curation/', CouponCurationView.as_view(), name='coupon-curation'),
+    path('own-couponbook/curation/', CouponTemplateCurationView.as_view(), name='coupon-curation'),
     path('couponbooks/<int:couponbook_id>/favorites/', FavoriteCouponListView.as_view(), name='favorite-coupon-list'),
     path('own-couponbook/favorites/<int:favorite_id>/', FavoriteCouponDetailView.as_view(), name='favorite-coupon-detail'),
     path('coupons/<int:coupon_id>/stamps/', StampListView.as_view(), name='stamp-list'),

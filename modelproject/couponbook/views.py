@@ -165,11 +165,11 @@ class CouponDetailView(RetrieveDestroyAPIView):
         summary="AI 기반 추천 쿠폰 목록 반환",
     )
 )
-class CouponCurationView(ListAPIView):
+class CouponTemplateCurationView(ListAPIView):
     """
     쿠폰 추천과 관련된 뷰입니다.
     """
-    serializer_class = CouponListResponseSerializer
+    serializer_class = CouponTemplateListSerializer
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
 
@@ -178,9 +178,10 @@ class CouponCurationView(ListAPIView):
         현재 유저의 쿠폰에서 쿠폰 큐레이션을 실행하여 추천된 쿠폰들의 쿼리셋을 반환합니다.
         """
         user_statistics = UserStatistics(self.request.user)
+        coupon_templates = CouponTemplate.objects.filter(Q(valid_until=None) | Q(valid_until__gte=now()), is_on=True)
         curator = AICurator()
-        coupon_id = curator.curate(user_statistics)
-        return Coupon.objects.filter(id=coupon_id)
+        coupon_templates_ids = curator.curate(user_statistics, coupon_templates)
+        return CouponTemplate.objects.filter(id__in=coupon_templates_ids)
     
 @extend_schema_view(
     get=extend_schema(
