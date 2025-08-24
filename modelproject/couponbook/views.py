@@ -168,15 +168,15 @@ class CouponDetailView(RetrieveDestroyAPIView):
 )
 class CouponTemplateCurationView(ListAPIView):
     """
-    쿠폰 추천과 관련된 뷰입니다.
+    쿠폰 템플릿 추천과 관련된 뷰입니다.
     """
     serializer_class = CouponTemplateListSerializer
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
 
-    def get_queryset(self):
+    def get_queryset(self):# -> Any:
         """
-        현재 유저의 쿠폰에서 쿠폰 큐레이션을 실행하여 추천된 쿠폰들의 쿼리셋을 반환합니다.
+        현재 유저의 쿠폰 컬렉션을 바탕으로 쿠폰 템플릿 큐레이션을 실행하여 추천된 쿠폰 템플릿들의 쿼리셋을 반환합니다.
         """
         user_statistics = UserStatistics(self.request.user)
         coupon_templates = CouponTemplate.objects.filter(Q(valid_until=None) | Q(valid_until__gte=now()), is_on=True)

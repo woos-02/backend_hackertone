@@ -62,6 +62,7 @@ class UserStatistics:
         place_info = {}
         place_info['name'] = place.name
         place_info['address'] = self.extract_address(place)
+        place_info['tags'] = place.tags
         return place_info
     
     def calc_current_stamps(self, coupon: Coupon) -> int:
@@ -191,7 +192,7 @@ class AICurator:
     
     def curate(self, statistics: UserStatistics, coupon_templates) -> list[int]:
         """
-        쿠폰 큐레이션을 실행합니다. 큐레이션 결과로 추천하는 쿠폰의 id가 반환됩니다.
+        쿠폰 큐레이션을 실행합니다. 큐레이션 결과로 추천하는 쿠폰의 id 리스트가 반환됩니다.
         """
         if not hasattr(self, 'client'):
             self.initialize_client()
