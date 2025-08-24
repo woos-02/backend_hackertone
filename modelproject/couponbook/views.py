@@ -90,7 +90,7 @@ class CouponBookDetailView(RetrieveAPIView):
         summary="쿠폰 템플릿 바탕으로 실사용 쿠폰 등록",
         request=CouponCreateRequestSerializer,
         responses=CouponDetailResponseSerializer,
-        examples=[OpenApiExample("요청 예시", value={"original_template": 1})],
+        examples=[OpenApiExample("요청 예시", value={"original_template": 1}, request_only=True)],
     ),
 )
 class CouponListView(ListCreateAPIView):
@@ -100,6 +100,7 @@ class CouponListView(ListCreateAPIView):
     serializer_class = CouponListResponseSerializer
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsMyCouponBook]
+    queryset = Coupon.objects.none() # drf-spectacular warning 방지
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
     filterset_class = CouponFilter
     ordering_fields = ['id', 'saved_at', 'stamp_counts']
@@ -196,7 +197,9 @@ class CouponTemplateCurationView(ListAPIView):
         summary="즐겨찾기 쿠폰 등록",
         request=FavoriteCouponCreateRequestSerializer,
         responses=FavoriteCouponCreateResponseSerializer,
-        examples=[OpenApiExample("요청 예시", value={"coupon": 1})],
+        examples=[
+            OpenApiExample("요청 예시", value={"coupon": 1}, request_only=True)
+        ],
     )
 )
 class FavoriteCouponListView(ListCreateAPIView):
@@ -334,6 +337,7 @@ class CouponTemplateDetailView(RetrieveAPIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
 
+    # 유효기간이 경과되지 않은 현재 게시중으로 설정된 쿠폰 템플릿 조회
     queryset = CouponTemplate.objects.filter(Q(valid_until=None) | Q(valid_until__gte=now()), is_on=True)
     lookup_url_kwarg = 'coupon_template_id'
 
@@ -346,7 +350,7 @@ class CouponTemplateDetailView(RetrieveAPIView):
         summary="영수증 번호를 바탕으로 스탬프 등록",
         request=StampCreateRequestSerializer,
         responses=StampCreateResponseSerializer,
-        examples=[OpenApiExample("요청 예시", value={"receipt": "00000001"})],
+        examples=[OpenApiExample("요청 예시", value={"receipt": "00000001"}, request_only=True)],
     )
 )
 class StampListView(CreateAPIView):
