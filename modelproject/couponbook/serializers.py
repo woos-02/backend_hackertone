@@ -187,7 +187,6 @@ class PlaceDetailResponseSerializer(PlaceListResponseSerializer):
     """
     Detail 계열의 시리얼라이저 내의 place 필드에 쓰여서 자세한 가게 정보를 표시합니다.
     """
-    lat, lng = None, None # 위도, 경도 정보 필요 없음
 
     address = serializers.SerializerMethodField()
     opens_at = serializers.TimeField(TIME_FORMAT)
@@ -201,7 +200,7 @@ class PlaceDetailResponseSerializer(PlaceListResponseSerializer):
     class Meta(PlaceListResponseSerializer.Meta):
         fields =  [
             'image_url', 'name', 'address',
-            'opens_at', 'closes_at', 'last_order', 'tel'
+            'opens_at', 'closes_at', 'last_order', 'tel', 'lat', 'lng'
         ]
 
 # ------------------------ 쿠폰 템플릿 -------------------------
