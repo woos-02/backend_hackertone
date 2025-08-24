@@ -154,6 +154,8 @@ USE_TZ = True
 
 STATIC_URL = "/static/"
 STATIC_ROOT = "/static"  # docker-compose: ./static:/app/static
+STATICFILES_DIRS = [ BASE_DIR / "static-dev" ]  # 루트/static을 수집 대상으로 추가
+
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -204,9 +206,6 @@ STORAGES = {
         },
     },
 }
-# settings_base.py
-STATICFILES_DIRS = [ BASE_DIR / "static-dev" ]  # 루트/static을 수집 대상으로 추가
-
 
 STORAGES["staticfiles"]["OPTIONS"]["location"] = STATIC_LOCATION
 # (선택) 정적/미디어 URL
