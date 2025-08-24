@@ -8,10 +8,9 @@
 # ]
 
 from django.urls import path
-from .views import LocationListAPIView, LocationHierarchyAPIView, upload_image
+from .views import LocationListAPIView # , upload_image
 
 urlpatterns = [
     path("locations/", LocationListAPIView.as_view(), name="get_location_data"),
-    path("locations/hierarchy/", LocationHierarchyAPIView.as_view(), name="get_location_hierarchy"),
-    path("upload/", upload_image, name="upload_image"),
+    # path("upload/", upload_image, name="upload_image"),
 ]
