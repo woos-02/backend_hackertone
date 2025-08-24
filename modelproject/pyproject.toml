@@ -34,9 +34,20 @@ dependencies = [
 [project.optional-dependencies]
 prod = [
     "cryptography>=45.0.6",
+    "django-storages[s3]==1.14.6",
 ]
 
 [dependency-groups]
 dev = [
+    "coverage>=7.10.4",
     "django-debug-toolbar>=6.0.0",
+    "pytest-cov>=6.2.1",
+    "pytest-django>=4.11.1",
+]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "modelproject.local_settings"
+python_files = [
+    "*tests.py",
+    "tests.py"
 ]

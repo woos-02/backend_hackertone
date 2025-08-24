@@ -51,14 +51,20 @@ class KakaoMapAPIClient:
         header = {'Authorization': auth_value}
         return header
     
-    def find_place_by_keyword(self, keyword: str, **kwargs) -> KakaoMapPlace:
+    def find_place_by_keyword(self, keyword: str, **kwargs) -> KakaoMapPlace | None:
         """
         장소를 검색하여 제일 먼저 나타나는 장소 정보를 바탕으로 KakaoMapPlace 인스턴스를 만들어 돌려줍니다.
+
+        검색 결과가 없으면 None이 반환됩니다.
 
         keyword는 필수 인자이며, 나머지는 https://developers.kakao.com/docs/latest/ko/local/dev-guide#search-by-keyword 문서의 쿼리 파라미터 값을 받습니다.
         """
         payload = {'query': keyword, **kwargs}
         header = self.generate_auth_header()
         r = requests.get('https://dapi.kakao.com/v2/local/search/keyword', params=payload, headers=header)
+
+        documents: dict = r.json()['documents']
+        if documents:
+            return KakaoMapPlace(documents[0])
         
-        return KakaoMapPlace(r.json()['documents'][0])
+        return None

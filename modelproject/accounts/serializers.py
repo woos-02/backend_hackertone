@@ -12,7 +12,7 @@ from rest_framework import serializers
 from couponbook.serializers import PlaceCreateSerializer, PlaceSerializer
 from couponbook.models import Place
 from .models import FavoriteLocation, User
-
+from rest_framework_simplejwt.token_blacklist.models import OutstandingToken, BlacklistedToken
 
 User: type[AbstractUser] = get_user_model()
 
@@ -116,7 +116,7 @@ class RegisterOwnerSerializer(BaseRegisterSerializer):
 
     - 필수 필드: 'place' (가게 생성 정보)
     """
-    place = PlaceCreateSerializer(required=True)
+    # place = PlaceCreateSerializer(required=True)
 
     class Meta(BaseRegisterSerializer.Meta):
         fields: tuple[Literal['id'], Literal['username'], Literal['email'], Literal['password'], Literal['phone']] = BaseRegisterSerializer.Meta.fields + ("place",)
@@ -131,15 +131,62 @@ class UserUpdateSerializer(serializers.ModelSerializer):
     **특징:**
     - 모든 필드는 업데이트 시 필수가 아닙니다.
     - `favorite_locations`를 업데이트하면 기존 데이터는 모두 삭제되고 새로운 데이터로 대체됩니다.
+    * 비밀번호를 바꾸려면 아래 3개 필드를 함께 전송하세요:
+        - current_password
+        - new_password1
+        - new_password2
     """
 
     favorite_locations = FavoriteLocationSerializer(many=True, required=False)
 
+    current_password = serializers.CharField(write_only=True, required=False, trim_whitespace=False)
+    new_password1     = serializers.CharField(write_only=True, required=False, trim_whitespace=False)
+    new_password2     = serializers.CharField(write_only=True, required=False, trim_whitespace=False)
+    
     class Meta:
         model = User
-        fields: list[str] = ["username", "email", "phone", "favorite_locations"]
+        fields: list[str] = ["username", "email", "phone", "favorite_locations", "current_password", "new_password1", "new_password2"]
         extra_kwargs: dict[str, dict[str, bool]] = {"email": {"required": False}, "username": {"required": False}}
 
+    def _need_password_change(self, attrs: dict) -> bool:
+        return bool(attrs.get("new_password1") or attrs.get("new_password2") or attrs.get("current_password"))
+
+    def validate(self, attrs: dict) -> dict:
+        # 비밀번호 변경 요청이 없으면 기존 업데이트만 수행
+        if not self._need_password_change(attrs):
+            return attrs
+
+        user: User = self.context["request"].user  # request는 DRF가 자동으로 넣어줍니다.
+        curr = attrs.get("current_password")
+        new1 = attrs.get("new_password1")
+        new2 = attrs.get("new_password2")
+
+        # 1) 세 필드 모두 필요
+        missing = [k for k in ("current_password", "new_password1", "new_password2") if not attrs.get(k)]
+        if missing:
+            raise serializers.ValidationError({k: ["이 필드는 필수입니다."] for k in missing})
+
+        # 2) 현재 비밀번호 확인
+        if not user.check_password(curr):
+            raise serializers.ValidationError({"current_password": ["현재 비밀번호가 올바르지 않습니다."]})
+
+        # 3) 새 비밀번호 일치
+        if new1 != new2:
+            raise serializers.ValidationError({"new_password2": ["새 비밀번호가 서로 일치하지 않습니다."]})
+
+        # 4) 기존 비밀번호와 동일 금지 + Django 정책 검증
+        if curr == new1:
+            raise serializers.ValidationError({"new_password1": ["기존 비밀번호와 다른 비밀번호를 사용해 주세요."]})
+        try:
+            validate_password(new1, user=user)
+        except DjangoValidationError as e:
+            raise serializers.ValidationError({"new_password1": list(e.messages)})
+
+        # 내부 플래그 저장
+        self._password_change_requested = True
+        self._new_password_value = new1
+        return attrs
+    
     @transaction.atomic
     def update(self, instance, validated_data):
         """
@@ -155,19 +202,44 @@ class UserUpdateSerializer(serializers.ModelSerializer):
         # favorite_locations 데이터 분리
         favorite_locations_data = validated_data.pop("favorite_locations", [])
 
-        # User 모델 업데이트
-        instance.username = validated_data.get("username", instance.username)
-        instance.email = validated_data.get("email", instance.email)
-        instance.phone = validated_data.get("phone", instance.phone)
+         # 비밀번호 관련 필드 제거(모델 저장 방지)
+        validated_data.pop("current_password", None)
+        validated_data.pop("new_password1", None)
+        validated_data.pop("new_password2", None)
+
+        for field in ("username", "email", "phone"):
+            if field in validated_data:
+                setattr(instance, field, validated_data[field])
         instance.save()
+
+
+        # User 모델 업데이트
+        # instance.username = validated_data.get("username", instance.username)
+        # instance.email = validated_data.get("email", instance.email)
+        # instance.phone = validated_data.get("phone", instance.phone)
+        # instance.save()
 
         # 'favorite_locations'가 요청에 포함된 경우에만 업데이트 로직 실행
         if favorite_locations_data:
             instance.favorite_locations.all().delete()
             for location_data in favorite_locations_data:
                 FavoriteLocation.objects.create(user=instance, **location_data)
+        
+        # 비밀번호 변경 수행(요청된 경우)
+        if getattr(self, "_password_change_requested", False):
+            instance.set_password(getattr(self, "_new_password_value"))
+            instance.save(update_fields=["password"])
+
+            # simplejwt token_blacklist 사용 시, 기존 Refresh 토큰 무효화
+            try:
+                for outstanding in OutstandingToken.objects.filter(user=instance):
+                    BlacklistedToken.objects.get_or_create(token=outstanding)
+            except Exception:
+                # token_blacklist 앱이 없으면 조용히 통과
+                pass
 
         return instance
+
 
 # ------------------------ 사용자 기본 정보 반환 -------------------------
 class UserMiniSerializer(serializers.ModelSerializer):
