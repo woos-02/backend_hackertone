@@ -15,7 +15,11 @@ TIME_FORMAT = "%H:%M"  # 기본 time 출력 포맷
 
 
 # -------------------------- 스탬프 적립 ----------------------------------
-@extend_schema_serializer(examples=[OpenApiExample("예시", {"receipt_number": "01234567890"})])
+@extend_schema_serializer(
+    examples=[
+        OpenApiExample("예시", {"receipt_number": "01234567890"})
+    ]
+)
 class StampCreateRequestSerializer(serializers.ModelSerializer):
     """
     스탬프를 생성(적립)하는 데에 사용되는 시리얼라이저입니다. 입력받은 영수증 번호를 바탕으로 스탬프를 생성합니다.
@@ -70,9 +74,7 @@ class StampCreateRequestSerializer(serializers.ModelSerializer):
 
 @extend_schema_serializer(
     examples=[
-        OpenApiExample(
-            "예시", {"current_stamps": 1, "is_completed": False}
-        )
+        OpenApiExample("예시", {"current_stamps": 1, "is_completed": False})
     ]
 )
 class StampCreateResponseSerializer(serializers.ModelSerializer):
@@ -139,7 +141,9 @@ class StampCreateResponseSerializer(serializers.ModelSerializer):
 
 # ------------------------ 혜택 정보 ---------------------------
 @extend_schema_serializer(
-    examples=[OpenApiExample("예시", {"amount": 10, "reward": "아메리카노 1잔 무료"})]
+    examples=[
+        OpenApiExample("예시", {"amount": 10, "reward": "아메리카노 1잔 무료"})
+    ]
 )
 class RewardsInfoDetailResponseSerializer(serializers.ModelSerializer):
     """
@@ -148,9 +152,13 @@ class RewardsInfoDetailResponseSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = RewardsInfo
-        exclude = ["id", "coupon_template"]
+        fields = ["amount", "reward"]
 
 # ---------------------------- 가게 ---------------------------------------
+@extend_schema_serializer(
+    examples=[
+        OpenApiExample("예시", {"image_url": "(이미지 파일 URL)", "name": "매머드 커피", "lat": "37.21412582140", "lng": "127.3432032904"})]
+)
 class PlaceListResponseSerializer(serializers.ModelSerializer):
     """
     List 계열의 시리얼라이저 내의 place 필드에 쓰여서 가게 정보를 간략하게 표시합니다.
@@ -167,18 +175,15 @@ class PlaceListResponseSerializer(serializers.ModelSerializer):
         OpenApiExample(
             "예시",
             {
-                "id": 1,
+                "image_url": "(이미지 파일 URL)",
+                "name": "매머드 커피",
                 "address": "서울 동대문구 이문동 264-223",
                 "opens_at": "08:00",
                 "closes_at": "21:00",
                 "last_order": "20:30",
-                "name": "매머드 커피",
+                "tel": "0507-1361-0962",
                 "lat": "37.21412582140",
                 "lng": "127.3432032904",
-                "image_url": "http://localhost:8000",
-                "tags": "카페",
-                "tel": "0507-1361-0962",
-                "owner": 1,
             },
         )
     ]
@@ -194,6 +199,9 @@ class PlaceDetailResponseSerializer(PlaceListResponseSerializer):
     last_order = serializers.TimeField(TIME_FORMAT)
 
     def get_address(self, obj: Place) -> str:
+        """
+        가게의 주소입니다.
+        """
         legal_district = obj.address_district
         return f"{legal_district.province} {legal_district.city} {legal_district.district} {obj.address_rest}"
 
@@ -210,31 +218,24 @@ class PlaceDetailResponseSerializer(PlaceListResponseSerializer):
             "예시",
             {
                 "id": 1,
+                "coupon_template_url": "http://127.0.0.1/couponbook/coupon-templates/1/",
                 "place": {
-                    "id": 1,
+                    "image_url": "(이미지 파일 URL)",
+                    "name": "매머드 커피",
                     "address": "서울 동대문구 이문동 264-223",
                     "opens_at": "08:00",
                     "closes_at": "21:00",
                     "last_order": "20:30",
-                    "name": "매머드 커피",
+                    "tel": "0507-1361-0962",
                     "lat": "37.21412582140",
                     "lng": "127.3432032904",
-                    "image_url": "http://localhost:8000",
-                    "tags": "카페",
-                    "tel": "0507-1361-0962",
-                    "owner": 1,
                 },
                 "reward_info": {
                     "amount": 10,
                     "reward": "아메리카노 1잔 무료"
                 },
-                "max_stamps": 10,
-                "saves": 5,
-                "uses": 2,
-                "valid_until": "2025-11-11 23:59",
-                "created_at": "2025-08-18 21:30",
-                "first_n_persons": 50,
-                "is_on": True,
+                "current_n_remaining": 30,
+                "already_owned": True,
             },
         )
     ]
@@ -252,12 +253,18 @@ class CouponTemplateListSerializer(serializers.ModelSerializer):
 
     @extend_schema_field(OpenApiTypes.URI)
     def get_coupon_template_url(self, obj: CouponTemplate):
+        """
+        해당 쿠폰 템플릿의 상세 조회 url입니다.
+        """
         request = self.context['request']
         return reverse(
             'couponbook:coupon-template-detail', kwargs={'coupon_template_id': obj.id}, request=request
         )
 
     def get_current_n_remaining(self, obj: CouponTemplate) -> int | None:
+        """
+        현재 기준 남은 선착순 인원 수입니다.
+        """
         if obj.first_n_persons and hasattr(obj, 'coupons'):
             return max(0, obj.first_n_persons - obj.coupons.count())
         elif obj.first_n_persons:
@@ -266,6 +273,9 @@ class CouponTemplateListSerializer(serializers.ModelSerializer):
             return None
 
     def get_already_owned(self, obj: CouponTemplate) -> bool:
+        """
+        이미 해당 쿠폰 템플릿으로 생성한 쿠폰을 보유하고 있는지의 여부입니다.
+        """
         if hasattr(obj, 'coupons'):
             return obj.coupons.filter(couponbook__user=self.context['request'].user).exists()
         
@@ -284,30 +294,23 @@ class CouponTemplateListSerializer(serializers.ModelSerializer):
             "예시",
             {
                 "id": 1,
-                "reward_info": {
-                    "amount": 10,
-                    "reward": "아메리카노 1잔 무료"
-                },
-                "max_stamps": 10,
-                "current_n_remaining": 45,
-                "valid_until": "2025-11-11 23:59",
                 "place": {
-                    "id": 1,
+                    "image_url": "(이미지 파일 URL)",
+                    "name": "매머드 커피",
                     "address": "서울 동대문구 이문동 264-223",
                     "opens_at": "08:00",
                     "closes_at": "21:00",
                     "last_order": "20:30",
-                    "name": "매머드 커피",
+                    "tel": "0507-1361-0962",
                     "lat": "37.21412582140",
                     "lng": "127.3432032904",
-                    "image_url": "http://localhost:8000",
-                    "tags": "카페",
-                    "tel": "0507-1361-0962",
-                    "owner": 1,
                 },
-                "created_at": "2025-08-18 21:30",
+                "reward_info": {
+                    "amount": 10,
+                    "reward": "아메리카노 1잔 무료"
+                },
+                "current_n_remaining": 45,
                 "already_owned": True,
-                "first_n_persons": 50,
             },
         )
     ]
@@ -348,6 +351,36 @@ class CouponTemplateCreateSerializer(serializers.ModelSerializer):
         return template
 
 # --------------------------- 쿠폰 -----------------------------
+@extend_schema_serializer(
+    examples=[
+        OpenApiExample(
+            "예시", 
+            {
+                "id": 1,
+                "coupon_url": "http://127.0.0.1/couponbook/coupons/1/",
+                "place": {
+                    "image_url": "(이미지 파일 URL)",
+                    "name": "매머드 커피",
+                    "address": "서울 동대문구 이문동 264-223",
+                    "opens_at": "08:00",
+                    "closes_at": "21:00",
+                    "last_order": "20:30",
+                    "tel": "0507-1361-0962",
+                    "lat": "37.21412582140",
+                    "lng": "127.3432032904",
+                },
+                "reward_info": {
+                    "amount": 10,
+                    "reward": "아메리카노 1잔 무료"
+                },
+                "current_stamps": 7,
+                "days_remaining": 10,
+                "is_completed": False,
+                "is_expired": False,
+            }
+        )
+    ]
+)
 class CouponListResponseSerializer(serializers.ModelSerializer):
     """
     쿠폰의 목록을 조회하는 응답에 사용되는 시리얼라이저입니다.
@@ -379,7 +412,7 @@ class CouponListResponseSerializer(serializers.ModelSerializer):
         place = original_template.place
         return PlaceDetailResponseSerializer(place).data
     
-    def get_reward_info(self, obj: Coupon) -> RewardsInfoDetailResponseSerializer | None:
+    def get_reward_info(self, obj: Coupon) -> RewardsInfoDetailResponseSerializer:
         """
         해당 쿠폰의 리워드 정보입니다.
         """
@@ -439,39 +472,24 @@ class CouponListResponseSerializer(serializers.ModelSerializer):
         OpenApiExample(
             "단일 쿠폰 조회 응답 예시",
             {
-                "id": 1,
-                "saved_at": "2025-08-18 21:35",
-                "place": {
-                    "id": 1,
-                    "address": "서울 동대문구 이문동 264-223",
-                    "opens_at": "08:00",
-                    "closes_at": "21:00",
-                    "last_order": "20:30",
-                    "name": "매머드 커피",
-                    "lat": "37.21412582140",
-                    "lng": "127.3432032904",
-                    "image_url": "http://localhost:8000",
-                    "tags": "카페",
-                    "tel": "0507-1361-0962",
-                    "owner": 1,
-                },
+                "is_favorite": True,
+                "favorite_id": 1,
                 "reward_info": {
                     "amount": 10,
                     "reward": "음료수 1잔 무료"
                 },
-                "max_stamps": 10,
                 "current_stamps": 5,
-                "stamps": [
-                    {
-                        "id": 1,
-                        "stamp_url": "http://localhost:8000/couponbook/stamps/1"
-                    }
-                ],
-                "is_favorite": True,
-                "favorite_id": 1,
-                "is_completed": False,
-                "days_remaining": 3,
-                "couponbook": 1,
+                "place": {
+                    "image_url": "(이미지 파일 URL)",
+                    "name": "매머드 커피",
+                    "address": "서울 동대문구 이문동 264-223",
+                    "opens_at": "08:00",
+                    "closes_at": "21:00",
+                    "last_order": "20:30",
+                    "tel": "0507-1361-0962",
+                    "lat": "37.21412582140",
+                    "lng": "127.3432032904",
+                },
             },
         )
     ]
@@ -483,6 +501,7 @@ class CouponDetailResponseSerializer(CouponListResponseSerializer):
 
     coupon_url = None # 이미 url을 알고 있으므로 필요 없음
     is_favorite = serializers.SerializerMethodField()
+    favorite_id = serializers.SerializerMethodField()
 
     def get_is_favorite(self, obj: Coupon) -> bool:
         """
@@ -494,9 +513,20 @@ class CouponDetailResponseSerializer(CouponListResponseSerializer):
 
         return favorite_coupon.exists()
     
+    def get_favorite_id(self, obj: Coupon) -> int | None:
+        """
+        해당 쿠폰이 즐겨찾기에 등록되어 있을 때의 즐겨찾기 id입니다. 즐겨찾기 삭제에 사용합니다.
+        """
+        if self.get_is_favorite(obj):
+            user = self.context["request"].user
+            couponbook = CouponBook.objects.get(user=user)
+            favorite_coupon_id = couponbook.favorite_coupons.get(coupon=obj).id
+
+            return favorite_coupon_id
+    
     class Meta(CouponListResponseSerializer.Meta):
         fields = [
-            'is_favorite', 'reward_info',
+            'is_favorite', 'favorite_id', 'reward_info',
             'current_stamps', 'place',
         ]
 
@@ -567,88 +597,35 @@ class CouponCreateRequestSerializer(serializers.ModelSerializer):
         model = Coupon
         fields = ["original_template"]
 
-
-@extend_schema_serializer(
-    examples=[
-        OpenApiExample(
-            "쿠폰 목록 응답 예시",
-            {
-                "id": 1,
-                "coupon_url": "http://localhost:8000/couponbook/coupons/1",
-                "place": {
-                    "id": 1,
-                    "address": "서울 동대문구 이문동 264-223",
-                    "opens_at": "08:00",
-                    "closes_at": "21:00",
-                    "last_order": "20:30",
-                    "name": "매머드 커피",
-                    "lat": "37.21412582140",
-                    "lng": "127.3432032904",
-                    "image_url": "http://localhost:8000",
-                    "tags": "카페",
-                    "tel": "0507-1361-0962",
-                    "owner": 1,
-                },
-                "reward_info": {
-                    "amount": 10,
-                    "reward": "음료수 1잔 무료"
-                },
-                "max_stamps": 10,
-                "current_stamps": 5,
-                "is_favorite": True,
-                "is_completed": False,
-                "is_expired": False,
-                "days_remaining": 7,
-                "saved_at": "2025-08-18 21:35",
-                "couponbook": 1,
-            },
-        )
-    ]
-)
-
 @extend_schema_serializer(
     examples=[
         OpenApiExample(
             "즐겨찾기 목록 응답 예시",
             {
-                "id": 1,
                 "coupon": {
-                   "id": 1,
-                    "saved_at": "2025-08-18 21:35",
+                    "id": 1,
+                    "coupon_url": "http://127.0.0.1/couponbook/coupons/1/",
                     "place": {
-                        "id": 1,
+                        "image_url": "(이미지 파일 URL)",
+                        "name": "매머드 커피",
                         "address": "서울 동대문구 이문동 264-223",
                         "opens_at": "08:00",
                         "closes_at": "21:00",
                         "last_order": "20:30",
-                        "name": "매머드 커피",
+                        "tel": "0507-1361-0962",
                         "lat": "37.21412582140",
                         "lng": "127.3432032904",
-                        "image_url": "http://localhost:8000",
-                        "tags": "카페",
-                        "tel": "0507-1361-0962",
-                        "owner": 1,
                     },
                     "reward_info": {
                         "amount": 10,
-                        "reward": "음료수 1잔 무료"
+                        "reward": "아메리카노 1잔 무료"
                     },
-                    "max_stamps": 10,
-                    "current_stamps": 5,
-                    "stamps": [
-                        {
-                            "id": 1,
-                            "stamp_url": "http://localhost:8000/couponbook/stamps/1"
-                        }
-                    ],
-                    "is_favorite": True,
-                    "favorite_id": 1,
+                    "current_stamps": 7,
+                    "days_remaining": 10,
                     "is_completed": False,
-                    "days_remaining": 3,
-                    "couponbook": 1,
-                },
-                "added_at": "2025-08-18 21:40",
-            },
+                    "is_expired": False,
+                }
+            }
         )
     ]
 )
@@ -760,7 +737,7 @@ class CouponBookDetailResponseSerializer(serializers.ModelSerializer):
 
     def get_favorite_counts(self, obj: CouponBook) -> int:
         """
-        즐겨찾기 한 쿠폰의 개수입니다.
+        즐겨찾기한 쿠폰의 개수입니다.
         """
         coupons = FavoriteCoupon.objects.filter(couponbook=obj)
         return coupons.count()
