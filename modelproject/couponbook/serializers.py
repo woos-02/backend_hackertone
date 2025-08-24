@@ -246,7 +246,7 @@ class CouponTemplateListSerializer(serializers.ModelSerializer):
     """
 
     coupon_template_url = serializers.SerializerMethodField()
-    place = PlaceListResponseSerializer()
+    place = PlaceDetailResponseSerializer()
     reward_info = RewardsInfoDetailResponseSerializer()
     current_n_remaining = serializers.SerializerMethodField()
     already_owned = serializers.SerializerMethodField()
