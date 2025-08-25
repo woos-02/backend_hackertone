@@ -193,7 +193,10 @@ class CouponTemplateCurationView(ListAPIView):
         """
 
         user_statistics = UserStatistics(self.request.user)
-        coupon_templates = CouponTemplate.objects.filter(Q(valid_until=None) | Q(valid_until__gte=now()), is_on=True)
+
+        # 유효 기간 지난 것 제거, 현재 게시중인 것만 보이게 하고, 이미 보유한 쿠폰 템플릿 제거
+        coupon_templates = CouponTemplate.objects.filter(Q(valid_until=None) | Q(valid_until__gte=now()), is_on=True).exclude(coupons__couponbook__user=self.request.user)
+        # print(coupon_templates)
         curator = AICurator()
         coupon_templates_ids = curator.curate(user_statistics, coupon_templates)
         return CouponTemplate.objects.filter(id__in=coupon_templates_ids)

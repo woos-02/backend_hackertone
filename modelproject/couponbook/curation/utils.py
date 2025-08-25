@@ -181,6 +181,7 @@ class AICurator:
             'user_statistics': statistics_history, 
             'coupon_templates': CouponTemplateDictSerializer(coupon_templates, many=True).data
         }
+
         input_prompt: str = self.generate_example(dumps(input_data_dict, ensure_ascii=False))
         config = types.GenerateContentConfig(system_instruction=INSTRUCTION, response_mime_type='application/json', response_schema=ResponseStructure)
         contents = [
@@ -188,8 +189,9 @@ class AICurator:
                 role='user', parts=[
                     types.Part(text="다음은 작업의 입력 사항과 필요한 출력 사항에 대한 구조의 개요야."),
                     types.Part(text=INPUT_STRUCTURE_MD),
-                    types.Part(text="다음은 위의 구조를 따르는 작업이야. 추천하는 coupon_template의 id 3개를 배열 형태로 출력해줘. "\
-                               "만약 coupon_templates 배열의 길이가 3 이하라면 모든 coupon_template의 id를 출력해."),
+                    types.Part(text="다음은 위의 구조를 따르는 작업이야. coupon_template들 중에 "\
+                               "추천하는 coupon_template의 id 3개를 배열 형태로 출력해줘. "\
+                               "만약, coupon_template이 3개 이하라면 모든 coupon_template의 id를 출력해."),
                     types.Part(text=input_prompt),
                 ]
             )
