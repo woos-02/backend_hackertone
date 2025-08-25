@@ -405,6 +405,22 @@ class CouponListResponseSerializer(serializers.ModelSerializer):
     is_completed = serializers.SerializerMethodField() # 완료 여부 따라서 디자인이 바뀌는가..?
     is_expired = serializers.SerializerMethodField() # 만료 여부 따라서 디자인이 바뀌는가..?
 
+    def get_coupon_reward_info(self, obj: Coupon) -> RewardsInfo | None:
+        """
+        해당 쿠폰에 연결된 리워드 정보를 가져옵니다.
+        """
+
+        if hasattr(obj, 'original_template') and hasattr(obj.original_template, 'reward_info'):
+            return obj.original_template.reward_info
+        
+    def get_coupon_valid_until(self, obj: Coupon):
+        """
+        해당 쿠폰의 유효 기간을 가져옵니다. 유효 기간은 있을 수도 있고, None일 수도 있습니다.
+        """
+
+        if hasattr(obj, 'original_template') and hasattr(obj.original_template, 'valid_until'):
+            return obj.original_template.valid_until
+
     @extend_schema_field(OpenApiTypes.URI)
     def get_coupon_url(self, obj: Coupon):
         """
@@ -428,11 +444,11 @@ class CouponListResponseSerializer(serializers.ModelSerializer):
         """
         해당 쿠폰의 리워드 정보입니다.
         """
-        original_template = obj.original_template
+        reward_info = self.get_coupon_reward_info(obj)
 
-        if hasattr(original_template, 'reward_info'):
-            return RewardsInfoDetailResponseSerializer(original_template.reward_info).data
-        return None 
+        if reward_info:
+            return RewardsInfoDetailResponseSerializer(reward_info).data
+        return None
     
     def get_current_stamps(self, obj: Coupon) -> int:
         """
@@ -445,7 +461,7 @@ class CouponListResponseSerializer(serializers.ModelSerializer):
         """
         해당 쿠폰의 유효기간이 며칠 남아 있는지를 의미합니다.
         """
-        valid_until = obj.original_template.valid_until
+        valid_until = self.get_coupon_valid_until(obj)
         if not valid_until:
             return None
         return (valid_until - now()).days
@@ -454,21 +470,21 @@ class CouponListResponseSerializer(serializers.ModelSerializer):
         """
         해당 쿠폰이 완성되었는지를 의미합니다.
         """
-        original_template: CouponTemplate = obj.original_template
-        if hasattr(original_template, 'reward_info'):
-            reward_info: RewardsInfo = original_template.reward_info
+        reward_info = self.get_coupon_reward_info(obj)
+
+        if reward_info:
             max_stamps: int = reward_info.amount
             current_stamps: int = Stamp.objects.filter(coupon=obj).count()
 
             return max_stamps == current_stamps
-        return False
+        return None
 
     def get_is_expired(self, obj: Coupon) -> bool:
         """
         해당 쿠폰의 유효기간이 만료되었는지를 의미합니다.
         """
         valid_until = obj.original_template.valid_until
-        return bool(valid_until and valid_until< now())
+        return bool(valid_until and valid_until < now())
 
     class Meta:
         model = Coupon
@@ -515,26 +531,40 @@ class CouponDetailResponseSerializer(CouponListResponseSerializer):
     is_favorite = serializers.SerializerMethodField()
     favorite_id = serializers.SerializerMethodField()
 
+    def get_coupon_owner_couponbook(self, obj: Coupon) -> CouponBook | None:
+        """
+        쿠폰 주인의 쿠폰북 인스턴스를 가져옵니다.
+
+        특이한 경우 None이 반환될 수 있지만, 정상적인 상황에서는 쿠폰북 인스턴스가 반환되어야 합니다.
+        """
+        user = self.context["request"].user
+        couponbook = CouponBook.objects.filter(user=user).first()
+        
+        return couponbook
+
     def get_is_favorite(self, obj: Coupon) -> bool:
         """
         해당 쿠폰을 즐겨찾기에 등록했는지의 여부입니다.
         """
-        user = self.context["request"].user
-        couponbook = CouponBook.objects.get(user=user)
-        favorite_coupon = couponbook.favorite_coupons.filter(coupon=obj)
+        couponbook = self.get_coupon_owner_couponbook(obj)
 
-        return favorite_coupon.exists()
+        if hasattr(couponbook, 'favorite_coupons'):
+            favorite_coupon = couponbook.favorite_coupons.filter(coupon=obj)
+
+            return favorite_coupon.exists()
+        return False # 쿠폰북의 즐겨찾기 쿠폰들이 없기 때문에 무조건 False일 수밖에 없음
     
     def get_favorite_id(self, obj: Coupon) -> int | None:
         """
         해당 쿠폰이 즐겨찾기에 등록되어 있을 때의 즐겨찾기 id입니다. 즐겨찾기 삭제에 사용합니다.
         """
         if self.get_is_favorite(obj):
-            user = self.context["request"].user
-            couponbook = CouponBook.objects.get(user=user)
+            couponbook = self.get_coupon_owner_couponbook(obj)
+            # get_is_favorite이 True가 반환되려면 favorite_coupons가 존재해야 하기 때문에 여기선 hasattr 사용하지 않아도 됨
             favorite_coupon_id = couponbook.favorite_coupons.get(coupon=obj).id
 
             return favorite_coupon_id
+        return None
     
     class Meta(CouponListResponseSerializer.Meta):
         fields = [
