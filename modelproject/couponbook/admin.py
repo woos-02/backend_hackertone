@@ -1,8 +1,8 @@
 from django.contrib import admin
 from django.db import models
 
-from .models import (Coupon, FavoriteCoupon, CouponBook, CouponTemplate, LegalDistrict, Place,
-                     Receipt, RewardsInfo, Stamp)
+from .models import (Coupon, CouponBook, CouponTemplate, FavoriteCoupon,
+                     LegalDistrict, Place, Receipt, RewardsInfo, Stamp)
 
 
 # CouponBook 모델을 Django 관리자 페이지에 등록
@@ -85,3 +85,4 @@ class LegalDistrictAdmin(admin.ModelAdmin):
 class PlaceAdmin(admin.ModelAdmin):
     list_display = ("id", "name", "address_district", "address_rest", "tel")
     search_fields = ("id", "name", "address_district", "tel")
+    

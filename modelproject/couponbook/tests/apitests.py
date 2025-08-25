@@ -3,7 +3,6 @@ from time import sleep
 
 from accounts.models import User
 from couponbook.models import *
-from django.test import TestCase
 from django.utils.timezone import now
 from rest_framework.test import APITestCase
 
@@ -15,6 +14,7 @@ class CouponBookViewTestCase(APITestCase):
     """
     쿠폰북 관련 테스트 케이스입니다.
     """
+
     @print_success_message("본인의 쿠폰만 보이는지 테스트")
     def test_only_my_coupon(self):
         """
@@ -43,6 +43,7 @@ class FavoriteCouponTestCase(APITestCase):
     """
     쿠폰 즐겨찾기 기능 관련 테스트 케이스입니다.
     """
+
     def setUp(self):
         """
         각 테스트 메소드 진행 전에 즐겨찾기로 등록할 쿠폰을 미리 만들어 둡니다. 유저 생성 및 로그인, 쿠폰 등록을 미리 실행합니다.
@@ -106,12 +107,14 @@ class FavoriteCouponTestCase(APITestCase):
         # 즐겨찾기 쿠폰 추가
         self.client.post('/couponbook/couponbooks/1/favorites/', {'coupon': 1})
         r = self.client.get('/couponbook/own-couponbook/')
-        self.assertEqual(r.data['favorite_counts'], 1, f"예상된 즐겨찾기 쿠폰 개수와 다릅니다. ({r.data['favorite_counts']}, 1)")
+        self.assertEqual(r.data['favorite_counts'], 1, 
+                         f"예상된 즐겨찾기 쿠폰 개수와 다릅니다. ({r.data['favorite_counts']}, 1)")
         
         # 즐겨찾기 쿠폰 삭제
         self.client.delete('/couponbook/own-couponbook/favorites/1/')
         r = self.client.get('/couponbook/own-couponbook/')
-        self.assertEqual(r.data['favorite_counts'], 0, f"예상된 즐겨찾기 쿠폰 개수와 다릅니다. ({r.data['favorite_counts']}, 0)")
+        self.assertEqual(r.data['favorite_counts'], 0, 
+                         f"예상된 즐겨찾기 쿠폰 개수와 다릅니다. ({r.data['favorite_counts']}, 0)")
     
     @print_success_message("쿠폰 템플릿 삭제로 인한 즐겨찾기 쿠폰 삭제 테스트")
     def test_coupon_template_delete_and_favorite_coupon_cascade(self):
@@ -126,7 +129,8 @@ class FavoriteCouponTestCase(APITestCase):
         # 즐겨찾기 쿠폰 추가
         self.client.post('/couponbook/couponbooks/1/favorites/', {'coupon': 1})
         r = self.client.get('/couponbook/own-couponbook/')
-        self.assertEqual(r.data['favorite_counts'], 1, f"예상된 즐겨찾기 쿠폰 개수와 다릅니다. ({r.data['favorite_counts']}, 1)")
+        self.assertEqual(r.data['favorite_counts'], 1, 
+                         f"예상된 즐겨찾기 쿠폰 개수와 다릅니다. ({r.data['favorite_counts']}, 1)")
 
         # 쿠폰 템플릿 삭제
         coupon_template = CouponTemplate.objects.get(id=1)
@@ -134,10 +138,14 @@ class FavoriteCouponTestCase(APITestCase):
 
         # 즐겨찾기 쿠폰 개수 확인 (0개여야 함)
         r = self.client.get('/couponbook/own-couponbook/')
-        self.assertEqual(r.data['favorite_counts'], 0, "예상된 즐겨찾기 쿠폰 개수와 다릅니다. ({r.data['favorite_counts']}, 1)")
+        self.assertEqual(r.data['favorite_counts'], 0, 
+                         f"예상된 즐겨찾기 쿠폰 개수와 다릅니다. ({r.data['favorite_counts']}, 1)")
     
     @print_success_message("본인이 소유하지 않은 쿠폰북의 즐겨찾기 쿠폰 목록을 열람 불가능한지 테스트")
     def test_list_others_favorite_coupons(self):
+        """
+        본인이 소유하지 않은 쿠폰북의 즐겨찾기 쿠폰 목록이 열람 불가능한지 테스트하는 테스트 메소드입니다.
+        """
         
         # 또다른 유저 생성 및 로그인
         user2 = User.objects.create(username='test2', password='1234')
@@ -149,6 +157,9 @@ class FavoriteCouponTestCase(APITestCase):
 
     @print_success_message("본인이 소유하지 않은 쿠폰을 즐겨찾기 등록 불가능한지 테스트")
     def test_add_others_coupon_as_favorite(self):
+        """
+        본인이 소유하지 않은 쿠폰을 즐겨찾기 등록할 수 없는지 테스트하는 테스트 메소드입니다.
+        """
 
         # 또다른 유저 생성 및 로그인
         user2 = User.objects.create(username='test2', password='1234')
@@ -169,6 +180,7 @@ class ResponseTestCase(APITestCase):
 
     특히, 시리얼라이저 리팩토링에서 중요한 기준이 되는 테스트케이스입니다.
     """
+
     def setUp(self):
         """
         각 테스트 메소드 진행 전에 미리 필요한 데이터를 세팅합니다.
@@ -232,6 +244,7 @@ class ResponseTestCase(APITestCase):
 
         필요한 데이터: 즐겨찾기 쿠폰 수, 저장한 쿠폰 수, 스탬프 수
         """
+
         r = self.client.get('/couponbook/own-couponbook/')
         keys = r.data.keys()
 
@@ -247,6 +260,7 @@ class ResponseTestCase(APITestCase):
             - 가게 정보: 가게 이미지 url, 가게 이름
             - 리워드 정보: 완성을 위해 필요한 개수, 리워드
         """
+
         r = self.client.post('/couponbook/couponbooks/1/coupons/', {'original_template': 1})
         self.assertEqual(r.status_code, 201, "쿠폰 등록에 실패한 것 같습니다...") # 201 Created
 
@@ -276,6 +290,7 @@ class ResponseTestCase(APITestCase):
             - 리워드 정보: 완성을 위해 필요한 개수, 리워드
             - 매장 정보: 가게 이미지, 위치, 오픈 시간, 종료 시간, 라스트 오더, 연락처
         """
+
         r = self.client.post('/couponbook/couponbooks/1/coupons/', {'original_template': 1})
         self.assertEqual(r.status_code, 201, "쿠폰 등록에 실패한 것 같습니다...")
         
@@ -307,16 +322,32 @@ class ResponseTestCase(APITestCase):
 
         필요한 데이터: 현재 스탬프 개수 (방금 적립된 스탬프 포함)
         """
+
         r = self.client.post('/couponbook/couponbooks/1/coupons/', {'original_template': 1})
         self.assertEqual(r.status_code, 201, "쿠폰 등록에 실패한 것 같습니다...")
 
         r = self.client.post('/couponbook/coupons/1/stamps/', {'receipt': f'{0:08d}'})
         self.assertEqual(r.status_code, 201, "스탬프 적립에 실패한 것 같습니다...")
 
-        self.assertEqual('current_stamps' in r.data.keys(), True, f"필요한 데이터가 빠졌습니다! current_stamps")
+        self.assertEqual('current_stamps' in r.data.keys(), True, "필요한 데이터가 빠졌습니다! current_stamps")
     
+    @print_success_message("쿠폰 템플릿 큐레이션 테스트")
+    def test_coupon_template_curation_test(self):
+        """
+        쿠폰 큐레이션이 정상 작동하는지 테스트하는 테스트 메소드입니다.
+        """
+
+        # r = self.client.post('/couponbook/couponbooks/1/coupons/', {'original_template': 1})
+        # self.assertEqual(r.status_code, 201, "쿠폰 등록에 실패한 것 같습니다...")
+
+        r = self.client.get('/couponbook/own-couponbook/curation/')
+        self.assertEqual(r.status_code, 200, "무언가 잘못되었습니다...")
 
 class StampTestCase(APITestCase):
+    """
+    스탬프에 관련된 테스트 케이스입니다.
+    """
+
     def setUp(self):
         """
         스탬프 적립을 위해 필요한 가게, 영수증, 유저 등을 세팅합니다. 쿠폰 템플릿부터 테스트 메소드에서 생성합니다.
@@ -361,6 +392,7 @@ class StampTestCase(APITestCase):
         """
         이미 완성된 쿠폰에 스탬프가 적립되지 않는지 테스트하는 테스트 메소드입니다.
         """
+
         # 쿠폰 템플릿 생성
         original_template_dict = {
             'first_n_persons': 10,
@@ -394,6 +426,7 @@ class StampTestCase(APITestCase):
         """
         유효기간이 지난 쿠폰에 스탬프가 적립되지 않는지 테스트하는 테스트 메소드입니다.
         """
+
         # 쿠폰 템플릿 생성
         original_template_dict = {
             'first_n_persons': 10,
@@ -427,6 +460,7 @@ class StampTestCase(APITestCase):
         """
         본인 소유의 쿠폰을 사용했을 때에만 스탬프가 적립되는지 테스트하는 테스트 메소드입니다.
         """
+
         # 쿠폰 템플릿 생성
         original_template_dict = {
             'first_n_persons': 10,
@@ -473,6 +507,7 @@ class ExpiredCouponTemplateTestCase(APITestCase):
     """
     유효기간이 만료된 쿠폰 템플릿에 대한 테스트케이스입니다.
     """
+
     def setUp(self):
         # 법정동 주소 생성
         legal_district_dict = {
@@ -503,7 +538,7 @@ class ExpiredCouponTemplateTestCase(APITestCase):
             'valid_until': now(),
             'first_n_persons': 10,
             'is_on': True,
-            'place': Place.objects.get(id=1)
+            'place': place
         }
         coupon_template = CouponTemplate.objects.create(**original_template_dict)
 
@@ -521,6 +556,7 @@ class ExpiredCouponTemplateTestCase(APITestCase):
         """
         유효기간이 만료된 쿠폰 템플릿이 표시되지 않는지 테스트하는 테스트 메소드입니다.
         """
+
         # 유저 생성 및 로그인
         user= User.objects.create(username='test', password='1234')
         self.client.force_authenticate(user=user)
@@ -534,6 +570,7 @@ class ExpiredCouponTemplateTestCase(APITestCase):
         """
         쿠폰 템플릿의 유효기간이 만료되었을 때, 쿠폰이 등록되지 않는지 테스트하는 테스트 메소드입니다.
         """
+
         # 유저 생성 및 로그인
         user = User.objects.create(username='test', password='1234')
         self.client.force_authenticate(user=user)
@@ -582,7 +619,7 @@ class FullCouponTemplateTestCase(APITestCase):
             'valid_until': now() + timedelta(days=5),
             'first_n_persons': 1,
             'is_on': True,
-            'place': Place.objects.get(id=1)
+            'place': place
         }
         coupon_template = CouponTemplate.objects.create(**original_template_dict)
 
@@ -647,7 +684,7 @@ class AlreadyOwnCouponTemplateTestCase(APITestCase):
             'valid_until': now() + timedelta(days=5),
             'first_n_persons': 10,
             'is_on': True,
-            'place': Place.objects.get(id=1)
+            'place': place
         }
         coupon_template = CouponTemplate.objects.create(**original_template_dict)
 
@@ -727,6 +764,7 @@ class LackRelatedDataTestCase(APITestCase):
         """
         쿠폰은 reward_info를 필요로 합니다. reward_info가 없을 때 쿠폰을 조회하면 오류가 발생하는지 테스트합니다.
         """
+
         # 법정동 주소 생성
         legal_district_dict = {
             'code_in_law': '1123011000',
