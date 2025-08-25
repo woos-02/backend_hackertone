@@ -78,7 +78,7 @@ class CuratorTestCase(TestCase):
             'valid_until': now(),
             'first_n_persons': 10,
             'is_on': True,
-            'place': Place.objects.get(id=1)
+            'place': place
         }
         coupon_template = CouponTemplate.objects.create(**original_template_dict)
 

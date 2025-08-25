@@ -320,7 +320,11 @@ class ResponseTestCase(APITestCase):
         """
         쿠폰 큐레이션이 정상 작동하는지 테스트하는 테스트 메소드입니다.
         """
-        pass
+        r = self.client.post('/couponbook/couponbooks/1/coupons/', {'original_template': 1})
+        self.assertEqual(r.status_code, 201, "쿠폰 등록에 실패한 것 같습니다...")
+
+        r = self.client.get('/couponbook/own-couponbook/curation/')
+        self.assertEqual(r.status_code, 200, "무언가 잘못되었습니다...")
 
 class StampTestCase(APITestCase):
     def setUp(self):
