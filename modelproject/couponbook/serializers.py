@@ -526,7 +526,7 @@ class CouponDetailResponseSerializer(CouponListResponseSerializer):
     
     class Meta(CouponListResponseSerializer.Meta):
         fields = [
-            'is_favorite', 'favorite_id', 'reward_info',
+            'id', 'is_favorite', 'favorite_id', 'reward_info',
             'current_stamps', 'place',
         ]
 
