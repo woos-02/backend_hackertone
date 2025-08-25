@@ -21,9 +21,11 @@ SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 # CSRF 신뢰 도메인(https 필수)
 CSRF_TRUSTED_ORIGINS: list[str] = [
     "https://hufs-likelion.store",
+    "https://hackathon-coral-two.vercel.app/",
 ]
 
 CORS_ALLOWED_ORIGINS = [
+    "https://hackathon-coral-two.vercel.app/",
     "https://hufs-likelion.store",
     "http://localhost:3000",
     "http://127.0.0.1:3000",
