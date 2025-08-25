@@ -44,7 +44,6 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "rest_framework",
-    "debug_toolbar",  # 디버깅 툴바
     "drf_spectacular",  # API 문서화
     "rest_framework_simplejwt",
     'rest_framework_simplejwt.token_blacklist',
@@ -58,7 +57,6 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    "debug_toolbar.middleware.DebugToolbarMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
