@@ -315,6 +315,12 @@ class ResponseTestCase(APITestCase):
 
         self.assertEqual('current_stamps' in r.data.keys(), True, f"필요한 데이터가 빠졌습니다! current_stamps")
     
+    @print_success_message("쿠폰 템플릿 큐레이션 테스트")
+    def test_coupon_template_curation_test(self):
+        """
+        쿠폰 큐레이션이 정상 작동하는지 테스트하는 테스트 메소드입니다.
+        """
+        pass
 
 class StampTestCase(APITestCase):
     def setUp(self):
