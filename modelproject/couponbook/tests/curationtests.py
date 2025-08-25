@@ -12,6 +12,7 @@ class CuratorTestCase(TestCase):
     """
     큐레이터의 동작을 테스트하는 테스트 케이스입니다.
     """
+
     def setUp(self):
         # 유저 생성
         User.objects.create(username='test', password='1234')
@@ -49,6 +50,7 @@ class CuratorTestCase(TestCase):
 
         아래의 경우 쿠폰 템플릿이 1개입니다.
         """
+        
         # 법정동 주소 생성
         legal_district_dict = {
             'code_in_law': '1123011000',

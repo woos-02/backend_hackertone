@@ -1,4 +1,3 @@
-from django.shortcuts import get_object_or_404
 from django.utils.timezone import now
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import (OpenApiExample, extend_schema_field,
@@ -25,7 +24,7 @@ class StampCreateRequestSerializer(serializers.ModelSerializer):
     스탬프를 생성(적립)하는 데에 사용되는 시리얼라이저입니다. 입력받은 영수증 번호를 바탕으로 스탬프를 생성합니다.
     """
 
-    def validate(self, data) -> dict:
+    def validate(self, attrs) -> dict:
         """
         쿠폰 확인, 영수증 확인을 거쳐 스탬프 적립의 유효성을 검증합니다.
 
@@ -38,7 +37,8 @@ class StampCreateRequestSerializer(serializers.ModelSerializer):
         original_template = coupon.original_template
 
         # 1. 쿠폰이 완성된 쿠폰인지 확인합니다.
-        if hasattr(coupon, 'stamps') and (coupon.stamps.count() >= original_template.reward_info.amount):
+        if hasattr(coupon, 'stamps') and \
+        (coupon.stamps.count() >= original_template.reward_info.amount):
             raise serializers.ValidationError("쿠폰이 이미 완성되었습니다.")
 
         # 2. 쿠폰의 유효기간이 경과하지 않았는지 확인합니다.
@@ -46,7 +46,7 @@ class StampCreateRequestSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("쿠폰의 유효기간이 지났습니다.")
 
         # 영수증 확인
-        receipt = data.get("receipt")
+        receipt = attrs.get("receipt")
 
         # 1. 영수증 번호가 등록되어 있는 영수증인지 확인합니다.
         if not receipt:
@@ -56,7 +56,7 @@ class StampCreateRequestSerializer(serializers.ModelSerializer):
         if hasattr(receipt, "stamp"):
             raise serializers.ValidationError("이미 스탬프가 발급된 영수증 번호입니다.")
 
-        return super().validate(data)
+        return super().validate(attrs)
 
     def create(self, validated_data) -> Stamp:
         """
@@ -157,7 +157,16 @@ class RewardsInfoDetailResponseSerializer(serializers.ModelSerializer):
 # ---------------------------- 가게 ---------------------------------------
 @extend_schema_serializer(
     examples=[
-        OpenApiExample("예시", {"image_url": "(이미지 파일 URL)", "name": "매머드 커피", "lat": "37.21412582140", "lng": "127.3432032904"})]
+        OpenApiExample(
+            "예시", 
+            {
+                "image_url": "(이미지 파일 URL)", 
+                "name": "매머드 커피", 
+                "lat": "37.21412582140", 
+                "lng": "127.3432032904"
+            }
+        )
+    ]
 )
 class PlaceListResponseSerializer(serializers.ModelSerializer):
     """
@@ -203,7 +212,8 @@ class PlaceDetailResponseSerializer(PlaceListResponseSerializer):
         가게의 주소입니다.
         """
         legal_district = obj.address_district
-        return f"{legal_district.province} {legal_district.city} {legal_district.district} {obj.address_rest}"
+        return f"{legal_district.province} {legal_district.city} {legal_district.district} " \
+             f"{obj.address_rest}"
 
     class Meta(PlaceListResponseSerializer.Meta):
         fields =  [
@@ -284,7 +294,8 @@ class CouponTemplateListSerializer(serializers.ModelSerializer):
     class Meta:
         model = CouponTemplate
         fields = [
-            'id', 'coupon_template_url', 'place', 'reward_info', 'current_n_remaining', 'already_owned'
+            'id', 'coupon_template_url', 'place', 'reward_info', 
+            'current_n_remaining', 'already_owned'
         ]
 
 
@@ -412,6 +423,7 @@ class CouponListResponseSerializer(serializers.ModelSerializer):
         place = original_template.place
         return PlaceDetailResponseSerializer(place).data
     
+    # RewardsInfoDetailResponseSerializer | None으로 설정하면 spectacular warning 떠서 None 뺐음
     def get_reward_info(self, obj: Coupon) -> RewardsInfoDetailResponseSerializer:
         """
         해당 쿠폰의 리워드 정보입니다.
@@ -420,7 +432,7 @@ class CouponListResponseSerializer(serializers.ModelSerializer):
 
         if hasattr(original_template, 'reward_info'):
             return RewardsInfoDetailResponseSerializer(original_template.reward_info).data
-        return None
+        return None 
     
     def get_current_stamps(self, obj: Coupon) -> int:
         """
@@ -546,7 +558,7 @@ class CouponCreateRequestSerializer(serializers.ModelSerializer):
     `original_template` 필드로 쿠폰 템플릿 ID를 받습니다
     """
 
-    def validate(self, data) -> dict:
+    def validate(self, attrs) -> dict:
         """
         1. 원본 쿠폰 템플릿이 존재하는지 확인합니다.
         2. 유효 기간이 만료되지 않았는지 확인합니다.
@@ -555,7 +567,7 @@ class CouponCreateRequestSerializer(serializers.ModelSerializer):
         """
 
         # 1. 원본 쿠폰 템플릿이 존재하는지 확인합니다.
-        original_template = data.get("original_template")
+        original_template = attrs.get("original_template")
         if not original_template:
             raise serializers.ValidationError("해당 쿠폰 템플릿이 존재하지 않습니다.")
         
@@ -580,7 +592,7 @@ class CouponCreateRequestSerializer(serializers.ModelSerializer):
                 "이미 해당 쿠폰 템플릿으로 생성한 쿠폰이 존재합니다."
             )
 
-        return super().validate(data)
+        return super().validate(attrs)
 
     def create(self, validated_data) -> Coupon:
         """
@@ -655,12 +667,12 @@ class FavoriteCouponCreateRequestSerializer(serializers.ModelSerializer):
     쿠폰을 즐겨찾기를 등록할 때 사용되는 시리얼라이저입니다.
     """
 
-    def validate(self, data) -> dict:
+    def validate(self, attrs) -> dict:
         """
         1. 해당 쿠폰 id에 해당하는 쿠폰이 존재하는지 확인합니다.
         2. 해당 쿠폰북에 해당 쿠폰이 즐겨찾기로 등록되어 있는지 확인합니다.
         """
-        coupon = data.get("coupon")
+        coupon = attrs.get("coupon")
 
         if not coupon:
             raise serializers.ValidationError(
@@ -673,7 +685,7 @@ class FavoriteCouponCreateRequestSerializer(serializers.ModelSerializer):
         if favorite_coupon.exists():
             raise serializers.ValidationError("이미 즐겨찾기 등록된 쿠폰입니다.")
 
-        return super().validate(data)
+        return super().validate(attrs)
 
     def create(self, validated_data) -> FavoriteCoupon:
         """

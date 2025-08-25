@@ -1,6 +1,6 @@
 # AI 큐레이터에서 사용하기 위한 데이터 시리얼라이저
 
-from couponbook.models import CouponBook, Place
+from couponbook.models import Place
 from couponbook.serializers import CouponTemplateListSerializer
 from rest_framework import serializers
 
@@ -13,7 +13,14 @@ class PlaceWithoutPersonalInfoSerializer(serializers.ModelSerializer):
     address= serializers.SerializerMethodField()
 
     def get_address(self, obj: Place):
-        return f"{obj.address_district.province} {obj.address_district.city} {obj.address_district.district}"
+        """
+        가게의 주소입니다. (광역시 ~ 법정동)
+
+        세부 주소 address_rest는 너무 디테일하므로 제거했습니다.
+        """
+
+        return f"{obj.address_district.province} {obj.address_district.city} " \
+            f"{obj.address_district.district}"
 
     class Meta:
         model = Place
