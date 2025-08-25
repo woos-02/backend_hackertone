@@ -37,17 +37,17 @@ class Coupon(models.Model):
         3. 선착순 인원이 있다면 마감되지 않았는지 확인합니다.
         4. 이미 해당 유저가 해당 쿠폰 템플릿으로 등록한 쿠폰이 존재하는지 확인합니다.
         """
-        
+
         # 1. 원본 쿠폰 템플릿이 존재하는지 확인합니다.
         if not CouponTemplate.objects.filter(id=self.original_template.id).exists():
             print("원본 쿠폰 템플릿이 존재하지 않아 쿠폰이 등록되지 않았습니다.")
             return
-        
+
         # 2. 유효 기간이 만료되지 않았는지 확인합니다.
         if self.original_template.valid_until and self.original_template.valid_until < now():
             print("쿠폰 템플릿의 유효 기간이 만료되어 쿠폰이 등록되지 않았습니다.")
             return
-        
+
         # 3. 선착순 인원이 있다면 마감되지 않았는지 확인합니다.
         if self.original_template.first_n_persons \
         and Coupon.objects.filter(original_template=self.original_template).count() >= self.original_template.first_n_persons:
@@ -149,21 +149,23 @@ class Stamp(models.Model):
         if Stamp.objects.filter(receipt=self.receipt).exists():
             print("이미 해당되는 영수증으로 등록된 스탬프가 있어 스탬프 인스턴스가 등록되지 않았습니다.")
             return
-        
+
         return super().save(*args, **kwargs)
 
 class Receipt(models.Model):
     """
     점주가 결제 완료 후 등록한 영수증입니다. 이 영수증과 일치해야 스탬프가 적립됩니다.
     """
-    receipt_number = models.CharField(max_length=30, help_text="영수증 번호입니다. 중복되지 않습니다.", unique=True, primary_key=True)
+    receipt_number = models.CharField(max_length=30, help_text="영수증 번호입니다. 중복되지 않습니다.",
+                                                      unique=True, primary_key=True)
     created_at = models.DateTimeField(auto_now_add=True, help_text="점주에 의해 영수증이 등록된 날짜와 시간입니다.")
 
 class LegalDistrict(models.Model):
     """
     전국의 주소를 법정동 단위까지 담는 모델입니다. Fixture를 사용해서 미리 데이터를 로딩해둬야 합니다.
     """
-    code_in_law = models.CharField(max_length=10, help_text="법정동 코드입니다. 예) 1123011000", unique=True, primary_key=True)
+    code_in_law = models.CharField(max_length=10, help_text="법정동 코드입니다. 예) 1123011000",
+                                                   unique=True, primary_key=True)
     province = models.CharField(max_length=8, help_text="광역시, 도 단위입니다. 예) 서울특별시")
     city = models.CharField(max_length=5, help_text="시, 군, 구 단위입니다. 예) 동대문구")
     district = models.CharField(max_length=7, help_text="읍, 면, 동 단위입니다. 예) 이문동")
@@ -178,29 +180,33 @@ class Place(models.Model):
                                             related_name='place',
                                             help_text="가게의 법정동 부분까지의 주소입니다. 예) 서울특별시 동대문구 이문동")
     address_rest = models.CharField(max_length=15, help_text="지번 포함 나머지 주소 부분입니다. 예) 107")
-    lat = models.DecimalField(decimal_places=15, max_digits=18, blank=True, null=True, help_text="위도입니다. 데이터 저장 시 자동 게산됩니다.")
-    lng = models.DecimalField(decimal_places=15, max_digits=18, blank=True, null=True, help_text="경도입니다. 데이터 저장 시 자동 계산됩니다.")
+    lat = models.DecimalField(decimal_places=15, max_digits=18, blank=True, null=True,
+                                                            help_text="위도입니다. 데이터 저장 시 자동 게산됩니다.")
+    lng = models.DecimalField(decimal_places=15, max_digits=18, blank=True, null=True,
+                                                            help_text="경도입니다. 데이터 저장 시 자동 계산됩니다.")
     image_url = models.URLField(help_text="가게의 이미지가 담겨 있는 URL입니다.")
     opens_at = models.TimeField(help_text="영업 시작 시간입니다.")
     closes_at = models.TimeField(help_text="영업 종료 시간입니다.")
-    tags = models.CharField(max_length=20, blank=True, null=True, help_text="가게의 태그들입니다. 콤마로 구분해서 입력하세요.")
+    tags = models.CharField(max_length=20, blank=True, null=True,
+                                                   help_text="가게의 태그들입니다. 콤마로 구분해서 입력하세요.")
     last_order = models.TimeField(help_text="라스트오더 시간입니다.")
     tel = models.CharField(max_length=20, help_text="가게 전화번호입니다.")
     # 점주와 가게를 1:1로 연결
-    owner = models.OneToOneField("accounts.User", on_delete=models.CASCADE, related_name="place", null=True, blank=True, help_text="이 매장의 점주 사용자입니다.")
+    owner = models.OneToOneField("accounts.User", on_delete=models.CASCADE, related_name="place",
+                                                      null=True, blank=True, help_text="이 매장의 점주 사용자입니다.")
 
     def save(self, *args, **kwargs):
         """
         위도와 경도 정보를 카카오맵 API를 이용해서 계산해서 저장합니다.
         """
         keyword = self.name
-        address_district = f"{self.address_district.province} {self.address_district.city} {self.address_district.district}"
-
-        latlng = get_place_latlng(f"{address_district} {keyword}")
+        address_district = f"{self.address_district.province} {self.address_district.city} " \
+             f"{self.address_district.district}"
         
+        latlng = get_place_latlng(f"{address_district} {keyword}")
+
         if latlng:
             self.lat, self.lng = latlng
-            
             return super().save(*args, **kwargs)
         
         print("존재하지 않는 가게여서 등록되지 않았습니다. 실존하는 가게임에도 등록이 되지 않는다면, 카카오맵에서 검색 가능한 가게인지 확인해보세요.")

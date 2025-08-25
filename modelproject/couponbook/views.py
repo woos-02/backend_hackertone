@@ -50,7 +50,8 @@ from .serializers import CouponTemplateCreateSerializer, PlaceSerializer
 class CouponBookDetailView(RetrieveAPIView):
     """
     한 쿠폰북을 조회하는 뷰입니다. 로그인된 유저의 유저 id에 해당하는 쿠폰북을 조회합니다.
-    """ 
+    """
+
     serializer_class = CouponBookDetailResponseSerializer
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated] # get_object에서 본인의 쿠폰북을 가져오기 때문에 IsAuthenticated 사용
@@ -76,12 +77,18 @@ class CouponBookDetailView(RetrieveAPIView):
         summary="쿠폰북에 속한 쿠폰들의 목록 조회",
         parameters=[
             OpenApiParameter('couponbook_id', int, OpenApiParameter.PATH),
-            OpenApiParameter('address', str, OpenApiParameter.QUERY, description='가게의 광역시 ~ 법정동 주소입니다. 일부 일치 검색입니다.'),
-            OpenApiParameter('district', str, OpenApiParameter.QUERY, description='가게의 법정동 주소 중 법정동 부분입니다. 정확하게 일치해야 합니다.'),
-            OpenApiParameter('name', str, OpenApiParameter.QUERY, description='가게 이름입니다. (영어의 경우 대소문자 구분 없음)'),
-            OpenApiParameter('is_expired', bool, OpenApiParameter.QUERY, description='쿠폰의 만료 여부입니다. (true / false, 대소문자 구별 없음)'),
-            OpenApiParameter('is_open', bool, OpenApiParameter.QUERY, description='현재 영업중인지 여부입니다. (true / false, 대소문자 구별 없음)'),
-            OpenApiParameter('ordering', str, OpenApiParameter.QUERY, description='정렬 기준입니다. stamp_counts: 스탬프 개수 오름차순 / -stamp_counts: 스탬프 개수 내림차순'),
+            OpenApiParameter('address', str, OpenApiParameter.QUERY,
+                             description='가게의 광역시 ~ 법정동 주소입니다. 일부 일치 검색입니다.'),
+            OpenApiParameter('district', str, OpenApiParameter.QUERY,
+                             description='가게의 법정동 주소 중 법정동 부분입니다. 정확하게 일치해야 합니다.'),
+            OpenApiParameter('name', str, OpenApiParameter.QUERY,
+                             description='가게 이름입니다. (영어의 경우 대소문자 구분 없음)'),
+            OpenApiParameter('is_expired', bool, OpenApiParameter.QUERY,
+                             description='쿠폰의 만료 여부입니다. (true / false, 대소문자 구별 없음)'),
+            OpenApiParameter('is_open', bool, OpenApiParameter.QUERY,
+                             description='현재 영업중인지 여부입니다. (true / false, 대소문자 구별 없음)'),
+            OpenApiParameter('ordering', str, OpenApiParameter.QUERY,
+                             description='정렬 기준입니다. stamp_counts: 스탬프 개수 오름차순 / -stamp_counts: 스탬프 개수 내림차순'),
         ]
     ),
     post=extend_schema(
@@ -97,6 +104,7 @@ class CouponListView(ListCreateAPIView):
     """
     쿠폰 목록에 관련된 뷰입니다. 쿠폰북에 속한 쿠폰들의 목록을 가져옵니다.
     """
+
     serializer_class = CouponListResponseSerializer
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsMyCouponBook]
@@ -109,6 +117,7 @@ class CouponListView(ListCreateAPIView):
         """
         URL의 couponbook_id를 바탕으로 해당 쿠폰북에 속한 쿠폰들을 조회합니다.
         """
+
         couponbook_id: int = self.kwargs['couponbook_id']
         queryset = Coupon.objects.filter(couponbook_id=couponbook_id)
         queryset = queryset.annotate(stamp_counts=Count('stamps'))
@@ -124,6 +133,7 @@ class CouponListView(ListCreateAPIView):
         """
         쿠폰 템플릿 id를 받아서, 해당 쿠폰 템플릿을 바탕으로 실사용 쿠폰을 생성합니다.
         """
+
         couponbook_id = self.kwargs['couponbook_id']
         couponbook = get_object_or_404(CouponBook, id=couponbook_id)
         request_serializer = self.get_serializer_class()(data=request.data, context={'request': request, 'couponbook': couponbook})
@@ -137,6 +147,7 @@ class CouponListView(ListCreateAPIView):
         """
         시리얼라이저에 의해 저장된 데이터를 반환하도록 하여 응답용 시리얼라이저에 인스턴스를 넣을 수 있게 합니다.
         """
+
         return serializer.save()
 
 @extend_schema_view(
@@ -152,6 +163,7 @@ class CouponDetailView(RetrieveDestroyAPIView):
     """
     한 쿠폰에 관련된 뷰입니다. 쿠폰 id에 해당하는 쿠폰을 조회하거나 삭제합니다.
     """
+
     serializer_class = CouponDetailResponseSerializer
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsMyCoupon]
@@ -168,18 +180,23 @@ class CouponDetailView(RetrieveDestroyAPIView):
 )
 class CouponTemplateCurationView(ListAPIView):
     """
-    쿠폰 추천과 관련된 뷰입니다.
+    쿠폰 템플릿 추천과 관련된 뷰입니다.
     """
+
     serializer_class = CouponTemplateListSerializer
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
 
-    def get_queryset(self):
+    def get_queryset(self):# -> Any:
         """
-        현재 유저의 쿠폰에서 쿠폰 큐레이션을 실행하여 추천된 쿠폰들의 쿼리셋을 반환합니다.
+        현재 유저의 쿠폰 컬렉션을 바탕으로 쿠폰 템플릿 큐레이션을 실행하여 추천된 쿠폰 템플릿들의 쿼리셋을 반환합니다.
         """
+
         user_statistics = UserStatistics(self.request.user)
-        coupon_templates = CouponTemplate.objects.filter(Q(valid_until=None) | Q(valid_until__gte=now()), is_on=True)
+
+        # 유효 기간 지난 것 제거, 현재 게시중인 것만 보이게 하고, 이미 보유한 쿠폰 템플릿 제거
+        coupon_templates = CouponTemplate.objects.filter(Q(valid_until=None) | Q(valid_until__gte=now()), is_on=True).exclude(coupons__couponbook__user=self.request.user)
+        # print(coupon_templates)
         curator = AICurator()
         coupon_templates_ids = curator.curate(user_statistics, coupon_templates)
         return CouponTemplate.objects.filter(id__in=coupon_templates_ids)
@@ -206,6 +223,7 @@ class FavoriteCouponListView(ListCreateAPIView):
     """
     현재 쿠폰북에 등록되어 있는 즐겨찾기 쿠폰들을 조회하는 뷰입니다.
     """
+
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsMyCouponBook, IsMyCouponForFavoriteAdd]
 
@@ -218,6 +236,7 @@ class FavoriteCouponListView(ListCreateAPIView):
         """
         현재 쿠폰북의 couponbook_id를 바탕으로 해당 쿠폰북에 속한 즐겨찾기 쿠폰들을 조회합니다.
         """
+
         couponbook_id = self.kwargs['couponbook_id']
         queryset = FavoriteCoupon.objects.filter(couponbook_id=couponbook_id)
         return queryset
@@ -226,6 +245,7 @@ class FavoriteCouponListView(ListCreateAPIView):
         """
         coupon_id를 받아서, coupon_id에 해당하는 쿠폰을 현재 쿠폰북에 즐겨찾기 쿠폰으로 등록합니다.
         """
+
         couponbook_id = self.kwargs['couponbook_id']
         couponbook = get_object_or_404(CouponBook, id=couponbook_id)
         request_serializer = self.get_serializer_class()(data=request.data, context={'request': request, 'couponbook': couponbook})
@@ -253,6 +273,7 @@ class FavoriteCouponDetailView(DestroyAPIView):
     """
     현재 즐겨찾기 쿠폰을 즐겨찾기에서 삭제하는 뷰입니다.
     """
+
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
     queryset = FavoriteCoupon.objects.all()
@@ -285,6 +306,7 @@ class CouponTemplateListView(generics.ListCreateAPIView):
     """
     쿠폰 템플릿 목록 조회(GET) + 템플릿 생성(POST, 점주 전용)
     """
+
     authentication_classes = [JWTAuthentication]
     queryset = CouponTemplate.objects.all()
     filter_backends = [DjangoFilterBackend]
@@ -316,6 +338,7 @@ class CouponTemplateListView(generics.ListCreateAPIView):
         FK(Place -> LegalDistrict)를 직렬화에서 접근하므로
         select_related로 한 번에 조인해 안전/성능을 확보합니다.
         """
+
         # 부모에 get_queryset이 있으면 사용, 없으면 기본 queryset 사용
         qs = super().get_queryset() if hasattr(super(), "get_queryset") else self.queryset
         # Place 및 LegalDistrict 조인 + 추가 필터링
@@ -333,6 +356,7 @@ class CouponTemplateDetailView(RetrieveAPIView):
     """
     한 쿠폰 템플릿을 조회하는 뷰입니다.
     """
+
     serializer_class = CouponTemplateDetailSerializer
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
@@ -357,6 +381,7 @@ class StampListView(CreateAPIView):
     """
     스탬프 적립(등록)과 관련된 뷰입니다.
     """
+
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsMyCoupon]
 
@@ -364,6 +389,7 @@ class StampListView(CreateAPIView):
         """
         URL의 coupon_id를 바탕으로 해당 쿠폰에 속한 스탬프들을 조회합니다.
         """
+        
         coupon_id: int = self.kwargs['coupon_id']
         return (Stamp.objects
                .filter(coupon_id=coupon_id)
@@ -384,6 +410,7 @@ class StampListView(CreateAPIView):
         """
         프론트에서 전달 받은 영수증 번호를 바탕으로, 해당 영수증 번호로 기발급된 스탬프를 체크한 후, 문제가 없으면 스탬프를 등록하고 해당 쿠폰의 전체 스탬프 목록을 돌려줍니다.
         """
+
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         stamp = serializer.save()
@@ -396,4 +423,5 @@ class StampListView(CreateAPIView):
         """
         시리얼라이저에 의해 저장된 데이터를 반환하도록 하여 응답용 시리얼라이저에 인스턴스를 넣을 수 있게 합니다.
         """
+
         return serializer.save()
